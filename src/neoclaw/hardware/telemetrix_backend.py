@@ -69,22 +69,22 @@ class TelemetrixBackend:
 
     # ── Internal helpers ──
 
-    def _make_input_cb(self, pin: int) -> Callable[[list], None]:
+    def _make_input_cb(self, pin: int) -> Callable:
         """Build an internal Telemetrix callback that adapts to IGPIOBackend format.
 
-        Telemetrix callback signature: callback([pin_number, value])
+        gpio().set_pin_mode_digital_input callback signature: callback(value)
+        where value is 0 (LOW) or 1 (HIGH). Pin info is not passed by Telemetrix —
+        we capture it via closure instead.
+
         IGPIOBackend callback signature: callback(pin: int, value: bool)
         """
-        def _internal(data: list) -> None:
-            if len(data) < 2:
-                return
-            reported_pin: int = data[0]
-            value: bool = bool(data[1])
+        def _internal(value: int) -> None:
+            bool_value = bool(value)
             with self._lock:
-                self._pin_states[reported_pin] = value
-            user_cb = self._user_callbacks.get(reported_pin)
+                self._pin_states[pin] = bool_value
+            user_cb = self._user_callbacks.get(pin)
             if user_cb:
-                user_cb(reported_pin, value)
+                user_cb(pin, bool_value)
 
         return _internal
 
@@ -97,12 +97,14 @@ class TelemetrixBackend:
             self._pin_states[pin] = False
 
     def setup_input(self, pin: int, pull_up: bool = True) -> None:
-        """Configure pin as digital input, registers internal callback for state caching."""
-        from thingbot_telemetrix.private_constants import PinModes
+        """Configure pin as digital input, registers internal callback for state caching.
 
-        mode = PinModes.INPUT_PULLUP if pull_up else PinModes.INPUT
+        Note: pull_up is passed as a hint for initial state caching only.
+        The actual INPUT vs INPUT_PULLUP mode must be set in Arduino firmware
+        (set_pin_mode_digital_input does not accept a mode parameter).
+        """
         cb = self._make_input_cb(pin)
-        self._tele.gpio().set_pin_mode_digital_input(pin, cb, mode)
+        self._tele.gpio().set_pin_mode_digital_input(pin, cb)
         with self._lock:
             # Optimistic default: pull_up pins start HIGH (not triggered)
             self._pin_states[pin] = True if pull_up else False
