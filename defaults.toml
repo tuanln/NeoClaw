@@ -1,0 +1,56 @@
+[application]
+name = "NeoClaw"
+version = "0.1.0"
+language = "vi"
+
+[hardware]
+board = "neo_one"           # "pico_w" or "neo_one"
+enable_gpio = false
+gpio_library = "gpiozero"
+pwm_frequency = 1000        # Hz
+watchdog_timeout = 30        # seconds
+
+[safety]
+enable_watchdog = true
+emergency_stop_pin = -1      # -1 = disabled
+max_motor_runtime = 60       # seconds continuous
+limit_switch_debounce_ms = 5
+
+[execution]
+timeout_seconds = 30
+max_memory_mb = 256
+max_claw_commands = 5000
+
+[ai]
+provider = "gemini"
+model = "gemini-2.5-flash"
+fallback_model = "gemini-2.0-flash"
+api_base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
+api_key = ""
+ollama_host = "http://localhost:11434"
+max_response_tokens = 512
+temperature = 0.3
+hint_level = "guidance"
+
+[ai.context]
+max_history_turns = 6
+max_code_lines = 200
+
+[education]
+default_phase = 1
+
+[iot]
+mqtt_broker = "localhost"
+mqtt_port = 1883
+mqtt_topic_prefix = "neoclaw"
+ws_host = "0.0.0.0"
+ws_port = 8765
+telemetry_interval = 5       # seconds
+
+[analytics]
+database_path = "~/.neoclaw/neoclaw.db"
+export_path = "~/.neoclaw/exports"
+
+[web]
+host = "0.0.0.0"
+port = 8080

@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "neoclaw"
+version = "0.1.0"
+description = "Agentic Robot Education Platform — Learn Python by controlling a claw machine"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [{name = "NeoClaw Team"}]
+
+dependencies = [
+    "click>=8.0",
+    "tomli>=2.0; python_version < '3.11'",
+]
+
+[project.optional-dependencies]
+hardware = ["gpiozero>=2.0"]
+iot = ["paho-mqtt>=2.0", "websockets>=12.0"]
+ai = ["openai>=1.0", "google-generativeai>=0.5"]
+web = ["fastapi>=0.110", "uvicorn[standard]>=0.29"]
+analytics = ["matplotlib>=3.8", "plotly>=5.0"]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.4",
+]
+all = ["neoclaw[hardware,iot,ai,web,analytics]"]
+
+[project.scripts]
+neoclaw = "neoclaw.cli.main:cli"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+target-version = "py39"
+line-length = 100
