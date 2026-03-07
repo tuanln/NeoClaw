@@ -18,6 +18,7 @@ dependencies = [
 
 [project.optional-dependencies]
 hardware = ["gpiozero>=2.0"]
+telemetrix = ["thingbot-telemetrix>=1.0"]
 iot = ["paho-mqtt>=2.0", "websockets>=12.0"]
 ai = ["openai>=1.0", "google-generativeai>=0.5"]
 web = ["fastapi>=0.110", "uvicorn[standard]>=0.29"]
@@ -27,7 +28,7 @@ dev = [
     "pytest-asyncio>=0.23",
     "ruff>=0.4",
 ]
-all = ["neoclaw[hardware,iot,ai,web,analytics]"]
+all = ["neoclaw[hardware,telemetrix,iot,ai,web,analytics]"]
 
 [project.scripts]
 neoclaw = "neoclaw.cli.main:cli"

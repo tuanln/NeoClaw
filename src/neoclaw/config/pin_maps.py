@@ -107,9 +107,54 @@ NEO_ONE_PINS = PinMap(
     led=20,
 )
 
+# ThingBot One pin mapping (Arduino Uno-compatible GPIO header)
+# Motor channels 1-3 are handled by ThingBotMotorController (not GPIO pins),
+# so motor_* fields here are set to -1 (unused). Only GPIO-based peripherals
+# (limit switches, buttons, electromagnet relay) require real pin numbers.
+#
+# Default wiring for ThingBot One + claw machine:
+#   Electromagnet relay : D22  (digital output → relay IN)
+#   Limit switches      : D2–D6 (active LOW, INPUT_PULLUP)
+#   Control buttons     : D7–D13 (active LOW, INPUT_PULLUP)
+#   DC motors           : ThingBot channels 1/2/3 (via ThingBotMotorController)
+THINGBOT_ONE_PINS = PinMap(
+    name="thingbot_one",
+    electromagnet=22,
+    # Motor pins unused — ThingBotMotorController uses motor channel numbers
+    motor_x_left=-1,
+    motor_x_right=-1,
+    motor_y_forward=-1,
+    motor_y_backward=-1,
+    motor_z_up=-1,
+    motor_z_down=-1,
+    # Buttons (active LOW, pull-up)
+    btn_claw_up=7,
+    btn_claw_down=8,
+    btn_claw_grab=9,
+    btn_crane_left=10,
+    btn_crane_right=11,
+    btn_crane_forward=12,
+    btn_crane_backward=13,
+    # Limit switches (active LOW, pull-up)
+    limit_x_left=2,
+    limit_y_forward=3,
+    limit_y_backward=4,
+    limit_z_up=5,
+    limit_z_down=6,
+    # No separate PWM pins — ThingBot motor API handles speed internally
+    pwm_x_left=-1,
+    pwm_x_right=-1,
+    pwm_y_forward=-1,
+    pwm_y_backward=-1,
+    pwm_z_up=-1,
+    pwm_z_down=-1,
+    led=13,
+)
+
 PIN_MAPS: dict[str, PinMap] = {
     "pico_w": PICOCLAW_PINS,
     "neo_one": NEO_ONE_PINS,
+    "thingbot_one": THINGBOT_ONE_PINS,
 }
 
 

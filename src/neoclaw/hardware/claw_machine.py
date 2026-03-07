@@ -53,21 +53,61 @@ class ClawMachine:
         safety.start()
 
     @classmethod
-    def create(cls, simulator: bool = False, board: str | None = None) -> ClawMachine:
-        """Factory method to create a ClawMachine with appropriate backend."""
+    def create(
+        cls,
+        simulator: bool = False,
+        board: str | None = None,
+        com_port: str | None = None,
+        ip_address: str | None = None,
+        ip_port: int = 31335,
+    ) -> ClawMachine:
+        """Factory method to create a ClawMachine with appropriate backend.
+
+        Backend selection priority:
+          1. simulator=True  → SimulatorBackend (no hardware needed)
+          2. board='thingbot_one' → TelemetrixBackend + ThingBotMotorController
+          3. default → GpiozeroBackend (local GPIO on NEO One / Pi)
+
+        :param simulator: Use in-memory simulator instead of real hardware.
+        :param board: Board name ('neo_one', 'pico_w', 'thingbot_one').
+                      Defaults to settings.hardware.board.
+        :param com_port: Serial port for ThingBot (e.g. '/dev/ttyACM0').
+                         Only used when board='thingbot_one'.
+        :param ip_address: IP address for TCP-connected ThingBot.
+                           Only used when board='thingbot_one'.
+        :param ip_port: TCP port for ThingBot network connection (default 31335).
+        """
         settings = get_settings()
         board = board or settings.hardware.board
 
+        pin_map = get_pin_map(board)
+
         if simulator:
             backend: IGPIOBackend = SimulatorBackend()
+            motors = create_motor_controllers(
+                backend, pin_map, settings.hardware.pwm_frequency
+            )
+        elif board == "thingbot_one":
+            from neoclaw.hardware.telemetrix_backend import TelemetrixBackend
+            from neoclaw.hardware.thingbot_motor_controller import (
+                create_thingbot_motor_controllers,
+            )
+
+            tele_backend = TelemetrixBackend(
+                com_port=com_port,
+                ip_address=ip_address,
+                ip_port=ip_port,
+            )
+            backend = tele_backend
+            motors = create_thingbot_motor_controllers(tele_backend)
         else:
             from neoclaw.hardware.gpio_backend import GpiozeroBackend
-            backend = GpiozeroBackend()
 
-        pin_map = get_pin_map(board)
-        motors = create_motor_controllers(
-            backend, pin_map, settings.hardware.pwm_frequency
-        )
+            backend = GpiozeroBackend()
+            motors = create_motor_controllers(
+                backend, pin_map, settings.hardware.pwm_frequency
+            )
+
         sensors = SensorManager(backend, pin_map)
         safety = SafetyManager(
             motors, sensors,
