@@ -1,50 +1,238 @@
 # NeoClaw — Agentic Robot Education Platform
 
-Learn Python by controlling a real claw machine. Built for NEO One SBC with Raspberry Pi Pico W compatibility.
+> Hoc Python bang cach dieu khien robot that. Xay dung tren MEO ThingBot + NEO One SBC.
 
-## Features
+```
+┌──────────────────────────────────┐
+│   M1(FL) ╲          ╱ M2(FR)    │   4 banh omni (di moi huong)
+│            ╲        ╱            │
+│              [ARM]               │   Tay robot 4-DOF
+│            ╱        ╲            │   (base + shoulder + elbow + gripper)
+│   M3(RL) ╱          ╲ M4(RR)    │
+│                        [SWEEP]   │   Can gat
+└──────────────────────────────────┘
+     NEO One (Python + AI)
+         ↕ USB Serial
+     ThingBot (ESP32-C3 + PCA9685)
+         ↕ PWM
+     4 DC Motor + 5 Servo + Buzzer + LED
+```
 
-- **Hardware Abstraction**: Control DC motors, limit switches, and electromagnets via a clean Python API
-- **AI Tutor**: Agentic assistant helps students learn Python through claw machine challenges
-- **Education**: 6 progressive lessons from "Hello Claw!" to full grab sequences
-- **IoT**: MQTT telemetry, WebSocket real-time control, device fleet management
-- **Simulator**: Full software simulation for learning without hardware
-- **Analytics**: Track student progress, visualize sensor data, export reports
+## NeoClaw la gi?
+
+NeoClaw la nen tang day lap trinh Python cho hoc sinh thong qua dieu khien robot.
+Thay vi hoc tren man hinh, hoc sinh viet code Python de robot **di chuyen, gap do, gat vat** — nhin thay ket qua ngay ngoai doi that.
+
+**3 dieu lam NeoClaw khac biet:**
+
+1. **Robot that** — Xe 4 banh omni + tay robot 4 bac tu do, khong phai simulator
+2. **AI Tutor** — Tro ly AI (Gemini/Ollama) huong dan tung buoc, hieu tieng Viet
+3. **Ma nguon mo** — MIT license, tu do chinh sua, phu hop truong hoc va makerspace
+
+## Tinh nang
+
+| | Tinh nang | Mo ta |
+|---|---|---|
+| **Robot** | ClawBot | Xe omni 4 banh (M1-M4) + tay robot 4-DOF (S1-S4) + can gat (S5) |
+| **AI** | Tutor thong minh | 4 che do: Teach / Free Play / Voice Control / Challenge |
+| **Giao duc** | 6 bai hoc | Tu "Hello ClawBot!" den viet function tu dong gap |
+| **Ngon ngu** | Tieng Viet + Anh | Dieu khien bang giong noi: "di tien", "sang trai 2 giay", "gap" |
+| **Simulator** | Khong can hardware | Hoc va test day du chi voi laptop |
+| **IoT** | MQTT + WebSocket | Dieu khien tu xa, theo doi sensor real-time |
+| **Phan tich** | Progress tracking | SQLite log, theo doi tien do hoc sinh |
 
 ## Quick Start
 
+### Khong co hardware (simulator)
+
 ```bash
-pip install -e ".[all]"
+git clone https://github.com/tuanln/NeoClaw.git
+cd NeoClaw
+pip3 install -e ".[all]"
 
-# Run with simulator (no hardware needed)
-neoclaw control --simulator
-
-# Start a learning session
+# Hoc Python voi AI tutor
 neoclaw teach --simulator
 
-# Launch web dashboard
-neoclaw monitor --web
+# Dieu khien tu do
+neoclaw control --simulator
 ```
 
-## Architecture
-
-See [docs/NEOCLAW-ARCHITECTURE.md](docs/NEOCLAW-ARCHITECTURE.md) for full architecture documentation.
-
-## Hardware
-
-See [docs/PICOCLAW-ANALYSIS.md](docs/PICOCLAW-ANALYSIS.md) for original PicoClaw analysis.
-
-## R&D — Open Source Comparison
-
-See [docs/OPENSOURCE-CLAW-COMPARISON.md](docs/OPENSOURCE-CLAW-COMPARISON.md) for analysis of OpenClaw, PicoClaw, ZeroClaw and how they relate to NeoClaw.
-
-## Development
+### Co hardware (ThingBot + robot)
 
 ```bash
-pip install -e ".[dev]"
-pytest
+# 1. Nap firmware ThingBot
+git clone https://github.com/tuanln/thingbot-telemetrix-arduino.git
+cd thingbot-telemetrix-arduino
+pio run --target upload
+
+# 2. Cai NeoClaw
+cd ../NeoClaw
+pip3 install -e ".[all]"
+pip3 install thingbot-telemetrix
+
+# 3. Chay
+export GEMINI_API_KEY="your-key"   # tuy chon, cho AI tutor
+neoclaw teach
 ```
 
-## License
+## Code vi du
 
-MIT
+### Dieu khien ClawBot
+
+```python
+from neoclaw.hardware.claw_robot import ClawRobot
+
+robot = ClawRobot.create()            # ket noi hardware
+# robot = ClawRobot.create(simulator=True)  # hoac simulator
+
+# Di chuyen (xe omni — di duoc moi huong)
+robot.forward(speed=60, duration=1.0)
+robot.strafe_right(speed=50, duration=0.5)
+robot.turn_left(speed=40, duration=0.3)
+
+# Tay robot
+robot.arm.move_to(base=45, shoulder=60, elbow=120)
+robot.arm.grip()
+robot.arm.pose("carry")
+
+# Hanh dong ket hop
+robot.pick_up()      # ha tay + gap + nang
+robot.forward(speed=40, duration=2.0)
+robot.put_down()     # ha tay + tha
+
+# Can gat
+robot.arm.sweep()
+
+robot.shutdown()
+```
+
+### Dieu khien ThingBot truc tiep
+
+```python
+from neoclaw.hardware.thingbot import ThingBot
+from neoclaw.hardware.models import MotorID, ServoID
+
+bot = ThingBot.connect()          # auto-detect USB
+bot.dc(MotorID.M1, 80)           # motor 1 tien 80%
+bot.servo(ServoID.S1, 90)        # servo 1 goc 90 do
+bot.buzzer(100)                   # keu beep
+bot.shutdown()
+```
+
+### Hoc sinh viet code (sandbox)
+
+```python
+# Bai tap: Di chuyen va gap vat
+from claw import *
+
+forward(speed=60, duration=1.0)
+arm_pose("reach_down")
+grip()
+arm_pose("carry")
+backward(speed=40, duration=1.5)
+release()
+```
+
+## Kien truc
+
+```
+┌────────────────────────────────────────────────────────┐
+│              CLI / Web UI / AI Agent                    │
+│         neoclaw teach | control | monitor               │
+├──────────────┬─────────────────────────────────────────┤
+│  ClawRobot   │    ClawMachine (legacy may gap)          │
+├──────┬───────┤                                         │
+│OmniBase│RobotArm│                                      │
+│(M1-M4)│(S1-S5) │                                       │
+├──────┴───────┤                                         │
+│           ThingBot                                      │
+│  dc() | servo() | buzzer() | led() | switch()          │
+├────────────────────────────────────────────────────────┤
+│         TelemetrixBackend (USB Serial)                  │
+├────────────────────────────────────────────────────────┤
+│    ESP32-C3  +  PCA9685 (16ch PWM)                     │
+│    4 DC Motor | 5 Servo | Buzzer | 2 LED | Switch      │
+└────────────────────────────────────────────────────────┘
+```
+
+**Phan tang:**
+
+| Tang | File | Vai tro |
+|------|------|---------|
+| **API** | `claw_robot.py` | ClawRobot = OmniBase + RobotArm. pick_up(), put_down() |
+| **Omni** | `omni_base.py` | Mecanum kinematics: forward, strafe, rotate, vector drive |
+| **Arm** | `robot_arm.py` | 4-DOF + sweeper. Smooth servo, preset poses |
+| **ThingBot** | `thingbot.py` | Hardware truc tiep: dc(M1-M4), servo(S1-S5), buzzer, led |
+| **Backend** | `telemetrix_backend.py` | Bridge Python ↔ ThingBot qua USB Serial |
+| **Agent** | `agent/` | AI tutor (Gemini/Ollama), NL interpreter, code sandbox |
+| **Education** | `education/` | 6 bai hoc, 14 bai tap, hint system, progress tracking |
+| **IoT** | `iot/` | MQTT telemetry, WebSocket, device fleet management |
+
+## Phan cung
+
+### MEO ThingBot
+
+| Thanh phan | Chi tiet |
+|------------|----------|
+| MCU | ESP32-C3-DevKitM-1 |
+| PWM | PCA9685 I2C (16 kenh, 12-bit) |
+| DC Motor | 4 (M1-M4), bidirectional, speed 0-100 |
+| Servo | 5 (S1-S5), angle 0-180 do |
+| Buzzer | 1 (PCA9685 ch14) |
+| LED | 2 (PCA9685 ch15, ch13) |
+| Switch | SW3 (ESP32-C3 GPIO 3) |
+| Giao tiep | USB Serial 115200 baud (Telemetrix protocol) |
+
+### Noi day ClawBot
+
+```
+ThingBot M1 → Front-Left wheel      ThingBot S1 → Arm base (yaw)
+ThingBot M2 → Front-Right wheel     ThingBot S2 → Shoulder
+ThingBot M3 → Rear-Left wheel       ThingBot S3 → Elbow
+ThingBot M4 → Rear-Right wheel      ThingBot S4 → Gripper
+                                     ThingBot S5 → Sweeper
+```
+
+## Tai lieu
+
+| Tai lieu | Mo ta |
+|----------|-------|
+| [CLAWBOT-SETUP-GUIDE.md](docs/CLAWBOT-SETUP-GUIDE.md) | **Huong dan day du**: linh kien, lap rap, nap firmware, cai dat, su dung, AI, troubleshooting |
+| [NEOCLAW-ARCHITECTURE.md](docs/NEOCLAW-ARCHITECTURE.md) | Kien truc he thong, PCA9685 channel map, Telemetrix protocol, robot profiles |
+| [PICOCLAW-ANALYSIS.md](docs/PICOCLAW-ANALYSIS.md) | Phan tich PicoClaw goc (prototype dau tien) |
+| [OPENSOURCE-CLAW-COMPARISON.md](docs/OPENSOURCE-CLAW-COMPARISON.md) | So sanh OpenClaw / PicoClaw / ZeroClaw |
+
+## Cau truc thu muc
+
+```
+NeoClaw/
+├── src/neoclaw/
+│   ├── hardware/          # ThingBot, OmniBase, RobotArm, ClawRobot
+│   ├── agent/             # AI Tutor, NL interpreter, code sandbox
+│   ├── education/         # 6 bai hoc, bai tap, hint, progress
+│   ├── iot/               # MQTT, WebSocket, device registry
+│   ├── analytics/         # SQLite logging, student tracking
+│   ├── web/               # FastAPI dashboard
+│   ├── cli/               # CLI commands (teach, control, deploy)
+│   └── config/            # TOML settings, pin maps
+├── tests/                 # 33 unit tests (100% pass)
+├── docs/                  # Tai lieu kien truc + huong dan
+├── picoclaw-source/       # PicoClaw firmware goc (tham khao)
+└── defaults.toml          # Cau hinh mac dinh
+```
+
+## Phat trien
+
+```bash
+pip3 install -e ".[dev]"
+pytest                      # 33 tests
+```
+
+## Giay phep
+
+MIT — Tu do su dung, chinh sua, phan phoi.
+
+## Lien ket
+
+- **ThingBot Firmware**: https://github.com/tuanln/thingbot-telemetrix-arduino
+- **Otto DIY** (tuong lai): https://www.ottodiy.com/
