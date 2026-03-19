@@ -34,6 +34,10 @@ See [docs/NEOCLAW-ARCHITECTURE.md](docs/NEOCLAW-ARCHITECTURE.md) for full archit
 
 See [docs/PICOCLAW-ANALYSIS.md](docs/PICOCLAW-ANALYSIS.md) for original PicoClaw analysis.
 
+## R&D — Open Source Comparison
+
+See [docs/OPENSOURCE-CLAW-COMPARISON.md](docs/OPENSOURCE-CLAW-COMPARISON.md) for analysis of OpenClaw, PicoClaw, ZeroClaw and how they relate to NeoClaw.
+
 ## Development
 
 ```bash

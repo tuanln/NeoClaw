@@ -3,6 +3,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+# Arduino analog pin aliases (for MEO ThingBot)
+A0, A1, A2, A3, A4, A5, A6, A7 = 14, 15, 16, 17, 18, 19, 20, 21
+
 
 @dataclass(frozen=True)
 class PinMap:
@@ -107,9 +110,44 @@ NEO_ONE_PINS = PinMap(
     led=20,
 )
 
+# MEO ThingBot pin mapping (Arduino-based via Telemetrix serial protocol)
+# MEO is the first supported external hardware device.
+# Pin numbers map to Arduino digital pins on the ThingBot board.
+MEO_THINGBOT_PINS = PinMap(
+    name="meo_thingbot",
+    electromagnet=A5,
+    motor_x_left=2,
+    motor_x_right=3,
+    motor_y_forward=4,
+    motor_y_backward=5,
+    motor_z_up=6,
+    motor_z_down=7,
+    btn_claw_up=8,
+    btn_claw_down=9,
+    btn_claw_grab=10,
+    btn_crane_left=11,
+    btn_crane_right=12,
+    btn_crane_forward=A0,
+    btn_crane_backward=A1,
+    limit_x_left=A2,
+    limit_y_forward=A3,
+    limit_y_backward=A4,
+    limit_z_up=A6,
+    limit_z_down=A7,
+    # ThingBot uses analog_write PWM on same motor pins
+    pwm_x_left=2,
+    pwm_x_right=3,
+    pwm_y_forward=4,
+    pwm_y_backward=5,
+    pwm_z_up=6,
+    pwm_z_down=7,
+    led=13,
+)
+
 PIN_MAPS: dict[str, PinMap] = {
     "pico_w": PICOCLAW_PINS,
     "neo_one": NEO_ONE_PINS,
+    "meo_thingbot": MEO_THINGBOT_PINS,
 }
 
 

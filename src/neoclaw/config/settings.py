@@ -40,11 +40,13 @@ class SafetySettings:
 
 @dataclass
 class HardwareSettings:
-    board: str = "neo_one"
+    board: str = "meo_thingbot"      # "meo_thingbot" (v1), "neo_one", "pico_w"
     enable_gpio: bool = False
-    gpio_library: str = "gpiozero"
+    gpio_library: str = "telemetrix" # "telemetrix" (NEO One -> ThingBot) or "gpiozero"
     pwm_frequency: int = 1000
     watchdog_timeout: int = 30
+    com_port: str = ""               # Serial port for Telemetrix (empty = auto-detect)
+    arduino_instance_id: int = 1     # Telemetrix board instance ID
 
 
 @dataclass

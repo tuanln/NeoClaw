@@ -60,6 +60,12 @@ class ClawMachine:
 
         if simulator:
             backend: IGPIOBackend = SimulatorBackend()
+        elif settings.hardware.gpio_library == "telemetrix":
+            from neoclaw.hardware.telemetrix_backend import TelemetrixBackend
+            backend = TelemetrixBackend(
+                com_port=settings.hardware.com_port or None,
+                arduino_instance_id=settings.hardware.arduino_instance_id,
+            )
         else:
             from neoclaw.hardware.gpio_backend import GpiozeroBackend
             backend = GpiozeroBackend()

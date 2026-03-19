@@ -4,11 +4,13 @@ version = "0.1.0"
 language = "vi"
 
 [hardware]
-board = "neo_one"           # "pico_w" or "neo_one"
+board = "meo_thingbot"      # "meo_thingbot" (v1), "neo_one", "pico_w"
 enable_gpio = false
-gpio_library = "gpiozero"
+gpio_library = "telemetrix" # "telemetrix" (NEO One -> ThingBot serial) or "gpiozero" (direct GPIO)
 pwm_frequency = 1000        # Hz
 watchdog_timeout = 30        # seconds
+com_port = ""               # Serial port for ThingBot (empty = auto-detect)
+arduino_instance_id = 1     # Telemetrix board instance ID
 
 [safety]
 enable_watchdog = true
