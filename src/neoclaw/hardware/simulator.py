@@ -2,12 +2,9 @@
 from __future__ import annotations
 
 import logging
-import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from neoclaw.hardware.claw_machine import ClawMachine
-from neoclaw.hardware.gpio_backend import SimulatorBackend
-from neoclaw.hardware.models import Axis, ClawState
 
 logger = logging.getLogger(__name__)
 

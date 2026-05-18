@@ -55,7 +55,7 @@ def control(simulator, speed):
 
         handler = commands.get(cmd)
         if handler:
-            result = handler()
+            handler()
             if sim:
                 pos = sim.position
                 click.echo(f"  Position: x={pos[0]:.1f} y={pos[1]:.1f} z={pos[2]:.1f}")

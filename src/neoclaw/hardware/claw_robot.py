@@ -20,14 +20,11 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Callable, Optional
 
 from neoclaw.config.settings import get_settings
 from neoclaw.hardware.models import (
     ClawRobotState,
-    JointName,
     LedID,
-    MotorID,
 )
 from neoclaw.hardware.omni_base import OmniBase
 from neoclaw.hardware.robot_arm import RobotArm

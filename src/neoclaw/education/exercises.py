@@ -5,7 +5,7 @@ import re
 from dataclasses import dataclass, field
 
 from neoclaw.agent.code_executor import ExecutionResult, execute_student_code
-from neoclaw.education.curriculum import Exercise, get_exercise
+from neoclaw.education.curriculum import get_exercise
 
 
 @dataclass

@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum, IntEnum, auto
-from typing import Optional
 
 
 # ── Legacy Claw Machine enums (backward compatible) ──
@@ -197,7 +196,7 @@ class ClawRobotState:
             "arm": self.arm.to_dict(),
             "switch_pressed": self.switch_pressed,
             "buzzer_freq": self.buzzer_freq,
-            "leds": {l.name: v for l, v in self.leds.items()},
+            "leds": {led.name: v for led, v in self.leds.items()},
         }
 
 

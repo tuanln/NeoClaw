@@ -22,7 +22,7 @@ Reports from ThingBot:
 from __future__ import annotations
 
 import logging
-from typing import Callable, Optional
+from typing import Callable
 
 from neoclaw.hardware.models import (
     LedID,
@@ -216,7 +216,7 @@ class ThingBot:
             "motors": {f"M{m}": s for m, s in self._motor_speeds.items()},
             "servos": {f"S{s}": a for s, a in self._servo_angles.items()},
             "buzzer": self._buzzer_freq,
-            "leds": {f"LED{l}": b for l, b in self._led_states.items()},
+            "leds": {f"LED{led}": b for led, b in self._led_states.items()},
             "switch": self._switch_state,
         }
 

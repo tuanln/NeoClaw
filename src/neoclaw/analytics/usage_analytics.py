@@ -1,7 +1,6 @@
 """Student progress and usage analytics."""
 from __future__ import annotations
 
-from typing import Optional
 
 from neoclaw.analytics.data_logger import DataLogger
 from neoclaw.education.progress_tracker import ProgressTracker

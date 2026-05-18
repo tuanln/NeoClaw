@@ -27,8 +27,8 @@ def teach(simulator, lesson, offline):
     else:
         lessons = get_lessons()
         click.echo("Available lessons:")
-        for l in lessons:
-            click.echo(f"  {l.id}. {l.title} — {l.description}")
+        for lesson_item in lessons:
+            click.echo(f"  {lesson_item.id}. {lesson_item.title} — {lesson_item.description}")
         lesson_id = click.prompt("Choose lesson", type=int, default=1)
         current_lesson = get_lesson(lesson_id)
         if not current_lesson:
@@ -96,7 +96,7 @@ def teach(simulator, lesson, offline):
                     click.echo("Moving to next exercise!")
                     break
 
-    click.echo(f"\n=== Lesson Complete! ===")
+    click.echo("\n=== Lesson Complete! ===")
     click.echo(f"Completion rate: {tracker.get_completion_rate():.0f}%")
     next_ex = tracker.get_next_exercise()
     if next_ex:

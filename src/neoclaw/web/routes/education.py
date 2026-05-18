@@ -20,16 +20,16 @@ async def list_lessons(phase: int = 1):
     return {
         "lessons": [
             {
-                "id": l.id,
-                "title": l.title,
-                "description": l.description,
-                "concepts": l.concepts,
+                "id": lesson.id,
+                "title": lesson.title,
+                "description": lesson.description,
+                "concepts": lesson.concepts,
                 "exercises": [
                     {"id": e.id, "title": e.title, "difficulty": e.difficulty}
-                    for e in l.exercises
+                    for e in lesson.exercises
                 ],
             }
-            for l in lessons
+            for lesson in lessons
         ]
     }
 

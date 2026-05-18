@@ -21,7 +21,9 @@ env/
 # Testing
 .pytest_cache/
 .coverage
+.ruff_cache/
 htmlcov/
+coverage.xml
 
 # Config & data (user-specific)
 *.db

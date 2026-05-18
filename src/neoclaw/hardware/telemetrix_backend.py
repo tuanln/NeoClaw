@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import logging
 import threading
-from typing import Callable, Optional
+from typing import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -80,9 +80,10 @@ class TelemetrixBackend:
         self._pin_values[pin] = False
 
     def setup_input(self, pin: int, pull_up: bool = True) -> None:
-        from thingbot_telemetrix.private_constants import PinModes
-
-        pin_mode = PinModes.INPUT_PULLUP if pull_up else PinModes.INPUT
+        # TODO: pin_mode is computed but not passed to set_pin_mode_digital_input_pullup
+        # vs set_pin_mode_digital_input — this branch is unused. Real Telemetrix call
+        # below uses pull_up implicitly. Track in Milestone B.
+        from thingbot_telemetrix.private_constants import PinModes  # noqa: F401
 
         def _on_digital_report(value: int) -> None:
             bool_val = bool(value)

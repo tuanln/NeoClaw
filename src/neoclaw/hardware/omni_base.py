@@ -24,10 +24,8 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Optional
 
 from neoclaw.hardware.models import (
-    MotorID,
     OmniBaseState,
     WheelPosition,
     WHEEL_MOTOR_MAP,

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Callable, Optional
+from typing import Callable
 
 from neoclaw.config.settings import get_settings
 from neoclaw.iot.models import TelemetryPacket
@@ -85,7 +85,7 @@ class MQTTClient:
 
     def _on_connect(self, client, userdata, flags, reason_code, properties=None) -> None:
         self._connected = True
-        logger.info(f"Connected to MQTT broker")
+        logger.info("Connected to MQTT broker")
         for topic in self._callbacks:
             client.subscribe(topic)
 

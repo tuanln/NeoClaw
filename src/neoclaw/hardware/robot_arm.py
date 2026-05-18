@@ -32,7 +32,6 @@ from neoclaw.hardware.models import (
     JointName,
     JOINT_LIMITS,
     JOINT_SERVO_MAP,
-    ServoID,
 )
 from neoclaw.hardware.thingbot import ThingBot
 

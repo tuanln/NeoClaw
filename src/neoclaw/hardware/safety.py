@@ -6,7 +6,7 @@ import threading
 import time
 from typing import Optional
 
-from neoclaw.hardware.models import Axis, Direction
+from neoclaw.hardware.models import Axis
 from neoclaw.hardware.motor_controller import DCMotorController
 from neoclaw.hardware.sensor_manager import SensorManager
 

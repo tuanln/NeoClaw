@@ -6,8 +6,7 @@ import pytest
 from neoclaw.config.pin_maps import PICOCLAW_PINS
 from neoclaw.config.settings import reset_settings
 from neoclaw.hardware.gpio_backend import SimulatorBackend
-from neoclaw.hardware.models import Axis
-from neoclaw.hardware.motor_controller import DCMotorController, create_motor_controllers
+from neoclaw.hardware.motor_controller import create_motor_controllers
 from neoclaw.hardware.sensor_manager import SensorManager
 
 

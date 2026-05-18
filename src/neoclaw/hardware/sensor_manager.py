@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Callable, Optional
+from typing import Callable
 
 from neoclaw.config.pin_maps import PinMap
 from neoclaw.hardware.gpio_backend import IGPIOBackend

@@ -1,7 +1,7 @@
 """Pin mapping registry for supported boards."""
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 # Arduino analog pin aliases (for MEO ThingBot)
 A0, A1, A2, A3, A4, A5, A6, A7 = 14, 15, 16, 17, 18, 19, 20, 21

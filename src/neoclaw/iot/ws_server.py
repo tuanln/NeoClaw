@@ -4,7 +4,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from typing import Optional, Set
+from typing import Set
 
 from neoclaw.config.settings import get_settings
 
@@ -47,7 +47,6 @@ class WebSocketServer:
         if not self._clients:
             return
         message = json.dumps(data)
-        import websockets
         await asyncio.gather(
             *(client.send(message) for client in self._clients),
             return_exceptions=True,
