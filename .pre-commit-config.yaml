@@ -1,0 +1,29 @@
+# Pre-commit hooks for NeoClaw.
+# Install: pip install pre-commit && pre-commit install
+# Run on all files manually: pre-commit run --all-files
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.13
+    hooks:
+      - id: ruff
+        args: [--fix]
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=500]
+
+  - repo: local
+    hooks:
+      - id: pytest-collect
+        name: pytest --collect-only (catch broken imports)
+        entry: pytest --collect-only -q
+        language: system
+        pass_filenames: false
+        types: [python]
