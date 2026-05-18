@@ -56,8 +56,12 @@ class TelemetrixBackend:
         self._thingbot = self._board.thingbot()
 
         # Pin state cache (Telemetrix reads are async/callback-based)
+        # `_state_lock` covers ALL shared mutable state on this object:
+        # _pin_values, _callbacks, _output_pins, _input_pins, _pwm_pins.
+        # User-supplied callbacks are invoked OUTSIDE the lock (snapshot pattern)
+        # to avoid deadlocks if a callback ever calls back into the backend.
+        self._state_lock = threading.Lock()
         self._pin_values: dict[int, bool] = {}
-        self._pin_lock = threading.Lock()
 
         # User callbacks
         self._callbacks: dict[int, Callable[[int, bool], None]] = {}
@@ -76,8 +80,9 @@ class TelemetrixBackend:
 
     def setup_output(self, pin: int) -> None:
         self._gpio.set_pin_mode_output(pin)
-        self._output_pins.add(pin)
-        self._pin_values[pin] = False
+        with self._state_lock:
+            self._output_pins.add(pin)
+            self._pin_values[pin] = False
 
     def setup_input(self, pin: int, pull_up: bool = True) -> None:
         # TODO: pin_mode is computed but not passed to set_pin_mode_digital_input_pullup
@@ -87,54 +92,59 @@ class TelemetrixBackend:
 
         def _on_digital_report(value: int) -> None:
             bool_val = bool(value)
-            with self._pin_lock:
+            with self._state_lock:
                 old_val = self._pin_values.get(pin)
                 self._pin_values[pin] = bool_val
-            if old_val is not None and old_val != bool_val:
-                cb = self._callbacks.get(pin)
-                if cb:
-                    cb(pin, bool_val)
+                cb = self._callbacks.get(pin)  # snapshot under lock
+            if old_val is not None and old_val != bool_val and cb is not None:
+                cb(pin, bool_val)
 
-        if pull_up:
-            self._gpio.set_pin_mode_digital_input(pin, callback=_on_digital_report)
-        else:
-            self._gpio.set_pin_mode_digital_input(pin, callback=_on_digital_report)
+        # NOTE: branch on pull_up is currently a no-op — see TODO above.
+        self._gpio.set_pin_mode_digital_input(pin, callback=_on_digital_report)
 
-        self._input_pins.add(pin)
-        self._pin_values[pin] = True if pull_up else False
+        with self._state_lock:
+            self._input_pins.add(pin)
+            self._pin_values[pin] = True if pull_up else False
 
     def write(self, pin: int, value: bool) -> None:
         self._gpio.digital_write(pin, 1 if value else 0)
-        with self._pin_lock:
+        with self._state_lock:
             self._pin_values[pin] = value
 
     def read(self, pin: int) -> bool:
-        with self._pin_lock:
+        with self._state_lock:
             return self._pin_values.get(pin, False)
 
     def pwm_start(self, pin: int, frequency: int, duty_cycle: float) -> None:
         # Telemetrix analog_write uses 0-255 range
         value = int(max(0.0, min(1.0, duty_cycle)) * 255)
         self._gpio.analog_write(pin, value)
-        self._pwm_pins.add(pin)
+        with self._state_lock:
+            self._pwm_pins.add(pin)
 
     def pwm_stop(self, pin: int) -> None:
         self._gpio.analog_write(pin, 0)
-        self._pwm_pins.discard(pin)
+        with self._state_lock:
+            self._pwm_pins.discard(pin)
 
     def set_callback(self, pin: int, callback: Callable[[int, bool], None]) -> None:
-        self._callbacks[pin] = callback
+        with self._state_lock:
+            self._callbacks[pin] = callback
 
     def cleanup(self) -> None:
-        # Stop all PWM
-        for pin in list(self._pwm_pins):
+        # Snapshot pin sets under lock, then act outside to avoid holding lock
+        # during slow SDK calls.
+        with self._state_lock:
+            pwm_snapshot = list(self._pwm_pins)
+            output_snapshot = list(self._output_pins)
+
+        for pin in pwm_snapshot:
             try:
                 self._gpio.analog_write(pin, 0)
             except Exception:
                 pass
 
-        # Turn off all outputs
-        for pin in self._output_pins:
+        for pin in output_snapshot:
             try:
                 self._gpio.digital_write(pin, 0)
             except Exception:
@@ -146,11 +156,12 @@ class TelemetrixBackend:
         except Exception:
             pass
 
-        self._output_pins.clear()
-        self._input_pins.clear()
-        self._pwm_pins.clear()
-        self._pin_values.clear()
-        self._callbacks.clear()
+        with self._state_lock:
+            self._output_pins.clear()
+            self._input_pins.clear()
+            self._pwm_pins.clear()
+            self._pin_values.clear()
+            self._callbacks.clear()
 
         logger.info("TelemetrixBackend cleaned up")
 

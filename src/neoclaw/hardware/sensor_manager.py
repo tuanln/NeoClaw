@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from typing import Callable
 
@@ -13,11 +14,18 @@ logger = logging.getLogger(__name__)
 
 
 class SensorManager:
-    """Manages limit switches and other sensors."""
+    """Manages limit switches and other sensors.
+
+    Thread safety: callback registration and dispatch are protected by
+    `_callbacks_lock`. The dispatch path takes a snapshot under the lock
+    and then invokes callbacks without holding it, so user code cannot
+    deadlock by calling `on_change` from within a callback.
+    """
 
     def __init__(self, backend: IGPIOBackend, pin_map: PinMap):
         self._backend = backend
         self._pin_map = pin_map
+        self._callbacks_lock = threading.Lock()
         self._callbacks: list[Callable[[SensorReading], None]] = []
 
         # Limit switch mapping: name → pin
@@ -44,7 +52,9 @@ class SensorManager:
             timestamp=time.time(),
         )
         logger.debug(f"Limit switch {name} (pin {pin}): {'TRIGGERED' if reading.value else 'released'}")
-        for callback in self._callbacks:
+        with self._callbacks_lock:
+            snapshot = list(self._callbacks)
+        for callback in snapshot:
             callback(reading)
 
     def _pin_to_name(self, pin: int) -> str:
@@ -65,8 +75,9 @@ class SensorManager:
         return {name: self.is_limit_triggered(name) for name in self._limit_switches}
 
     def on_change(self, callback: Callable[[SensorReading], None]) -> None:
-        """Register a callback for sensor changes."""
-        self._callbacks.append(callback)
+        """Register a callback for sensor changes. Thread-safe."""
+        with self._callbacks_lock:
+            self._callbacks.append(callback)
 
     def read_all(self) -> list[SensorReading]:
         """Read all sensors and return readings."""
