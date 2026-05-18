@@ -1,5 +1,9 @@
 # NeoClaw — Agentic Robot Education Platform
 
+[![CI](https://github.com/tuanln/NeoClaw/actions/workflows/ci.yml/badge.svg)](https://github.com/tuanln/NeoClaw/actions/workflows/ci.yml)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 > Hoc Python bang cach dieu khien robot that. Xay dung tren MEO ThingBot + NEO One SBC.
 
 ```
@@ -43,37 +47,50 @@ Thay vi hoc tren man hinh, hoc sinh viet code Python de robot **di chuyen, gap d
 
 ## Quick Start
 
-### Khong co hardware (simulator)
+### 5 phut bat dau (simulator — khong can hardware)
 
 ```bash
 git clone https://github.com/tuanln/NeoClaw.git
 cd NeoClaw
-pip3 install -e ".[all]"
+
+# Tao venv + cai package
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
+
+# Smoke test: chay demo end-to-end trong simulator
+python examples/demo_pick_drop.py
+# Expect: 6 buoc (home → forward → pick_up → strafe_left → put_down → home),
+# ket thuc voi "✓ Demo completed successfully."
 
 # Hoc Python voi AI tutor
 neoclaw teach --simulator
-
-# Dieu khien tu do
-neoclaw control --simulator
 ```
 
-### Co hardware (ThingBot + robot)
+### 5 phut bat dau voi hardware (ThingBot + robot)
 
 ```bash
-# 1. Nap firmware ThingBot
+# 1. Nap firmware ThingBot (mot lan)
 git clone https://github.com/tuanln/thingbot-telemetrix-arduino.git
-cd thingbot-telemetrix-arduino
-pio run --target upload
+cd thingbot-telemetrix-arduino && pio run --target upload && cd ..
 
-# 2. Cai NeoClaw
-cd ../NeoClaw
-pip3 install -e ".[all]"
-pip3 install thingbot-telemetrix
+# 2. Cai NeoClaw (neu chua)
+cd NeoClaw && source .venv/bin/activate
+pip install thingbot-telemetrix
 
-# 3. Chay
+# 3. Cam USB-C tu NEO One/PC vao ThingBot — verify cong serial
+ls /dev/cu.usbmodem* /dev/ttyUSB*  # macOS / Linux
+
+# 4. Smoke test ket noi thuc
+NEOCLAW_USE_HARDWARE=1 python examples/demo_pick_drop.py
+# Expect: robot di tien 1s → gap → strafe trai 1s → tha → home.
+# Neu motor khong quay: kiem tra nguon LiPo + dau noi PCA9685.
+
+# 5. Mo che do hoc
 export GEMINI_API_KEY="your-key"   # tuy chon, cho AI tutor
 neoclaw teach
 ```
+
+> **Chua co AI key?** `neoclaw teach --simulator` van chay duoc — chi mat AI tutor, van co content bai hoc + bai tap.
 
 ## Code vi du
 
@@ -199,6 +216,8 @@ ThingBot M4 → Rear-Right wheel      ThingBot S4 → Gripper
 |----------|-------|
 | [CLAWBOT-SETUP-GUIDE.md](docs/CLAWBOT-SETUP-GUIDE.md) | **Huong dan day du**: linh kien, lap rap, nap firmware, cai dat, su dung, AI, troubleshooting |
 | [NEOCLAW-ARCHITECTURE.md](docs/NEOCLAW-ARCHITECTURE.md) | Kien truc he thong, PCA9685 channel map, Telemetrix protocol, robot profiles |
+| [PRODUCT-BRIEF-NEOONE.md](docs/PRODUCT-BRIEF-NEOONE.md) | **Brief san pham v2.1** (2026-05-18) — kien truc NEO One + ThingBot, MCP tools, lo trinh |
+| [PLAN-C3-NEOONE-2026-05-18.md](docs/PLAN-C3-NEOONE-2026-05-18.md) | **Plan dev 5 ngay** — 3 milestone, risk, demo criteria |
 | [PICOCLAW-ANALYSIS.md](docs/PICOCLAW-ANALYSIS.md) | Phan tich PicoClaw goc (prototype dau tien) |
 | [OPENSOURCE-CLAW-COMPARISON.md](docs/OPENSOURCE-CLAW-COMPARISON.md) | So sanh OpenClaw / PicoClaw / ZeroClaw |
 
@@ -215,7 +234,8 @@ NeoClaw/
 │   ├── web/               # FastAPI dashboard
 │   ├── cli/               # CLI commands (teach, control, deploy)
 │   └── config/            # TOML settings, pin maps
-├── tests/                 # 33 unit tests (100% pass)
+├── tests/                 # 70 unit tests (100% pass, < 2s)
+├── examples/              # Demo scripts (demo_pick_drop.py)
 ├── docs/                  # Tai lieu kien truc + huong dan
 ├── picoclaw-source/       # PicoClaw firmware goc (tham khao)
 └── defaults.toml          # Cau hinh mac dinh
@@ -224,9 +244,25 @@ NeoClaw/
 ## Phat trien
 
 ```bash
-pip3 install -e ".[dev]"
-pytest                      # 33 tests
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
+
+# Test suite (70 tests, ~1s)
+pytest -q
+
+# Lint
+ruff check .
+
+# Auto-fix
+ruff check . --fix
+
+# Pre-commit hook (tuy chon)
+pip install pre-commit && pre-commit install
 ```
+
+**CI:** moi push/PR len main tu dong chay `ruff check` + `pytest --cov` tren Python 3.11 va 3.12 (xem [.github/workflows/ci.yml](.github/workflows/ci.yml)).
+
+**Thread safety:** `SensorManager` va `TelemetrixBackend` co lock + snapshot pattern cho callback dispatch — xem [tests/test_hardware/test_thread_safety.py](tests/test_hardware/test_thread_safety.py).
 
 ## Giay phep
 
