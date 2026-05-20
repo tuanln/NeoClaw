@@ -216,6 +216,7 @@ ThingBot M4 → Rear-Right wheel      ThingBot S4 → Gripper
 |----------|-------|
 | [CLAWBOT-SETUP-GUIDE.md](docs/CLAWBOT-SETUP-GUIDE.md) | **Huong dan day du**: linh kien, lap rap, nap firmware, cai dat, su dung, AI, troubleshooting |
 | [NEOCLAW-ARCHITECTURE.md](docs/NEOCLAW-ARCHITECTURE.md) | Kien truc he thong, PCA9685 channel map, Telemetrix protocol, robot profiles |
+| [PROGRESS.md](docs/PROGRESS.md) | **Progress log** — running session-by-session, doc moi nhat tren cung. Xem TRUOC khi bat dau phien moi. |
 | [PRODUCT-BRIEF-NEOONE.md](docs/PRODUCT-BRIEF-NEOONE.md) | **Brief san pham v2.1** (2026-05-18) — kien truc NEO One + ThingBot, MCP tools, lo trinh |
 | [PLAN-C3-NEOONE-2026-05-18.md](docs/PLAN-C3-NEOONE-2026-05-18.md) | **Plan dev 5 ngay** — 3 milestone, risk, demo criteria |
 | [PICOCLAW-ANALYSIS.md](docs/PICOCLAW-ANALYSIS.md) | Phan tich PicoClaw goc (prototype dau tien) |
