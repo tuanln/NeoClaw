@@ -80,8 +80,9 @@ Công thức phần cứng này giống hệt cách cộng đồng maker dựng 
 | xiaozhi-linux (thay thế) | `github.com/100askTeam/xiaozhi-linux` | Mã mở | Client Linux của 100ask — phương án dự phòng |
 | XiaoZhi AI Cloud | `xiaozhi.me` (gói Open Source) | Dịch vụ | ASR + LLM + TTS, console cấu hình tác tử |
 | NeoClaw | `github.com/tuanln/NeoClaw` | MIT | Điều khiển chuyển động (omni, tay) + lớp giáo dục. Tình trạng 2026-05-18: 7 module, 33 test (chạy được trong simulator), pyproject.toml + ruff. Chưa CI. |
-| ThingBot firmware | `github.com/tuanln/thingbot-telemetrix-arduino` | MIT | Firmware Telemetrix trên mạch ThingBot. Tình trạng 2026-05-18: last push 2026-02-08 — sẽ refresh ở Milestone B. |
-| thingbot-telemetrix | `pip install thingbot-telemetrix` | Mã mở | Thư viện Python cầu nối Serial NEO One ↔ ThingBot |
+| ThingBot firmware (**bản chính**) | `github.com/MEO-3/thingbot-telemetrix-arduino` | — | Firmware khớp mã lệnh 101-104 của thư viện; có cả bản BLE + serial. Cập nhật 30/08/2026: **vẫn mang lỗi byte speed không dấu**, chưa port bản vá. |
+| ThingBot firmware (fork tham chiếu) | `github.com/tuanln/thingbot-telemetrix-arduino` | MIT | Mã lệnh 7-10 → **không nói chuyện được với thư viện Python**. Giữ làm tham chiếu: đã sửa byte speed có dấu + có host-test cho phần toán chiều quay. |
+| thingbot-telemetrix | `github.com/MEO-3/thingbot-telemetrix` (`pip install "thingbot-telemetrix>=2.2"`) | **AGPL-3.0-or-later** | Thư viện Python cầu nối Serial NEO One ↔ ThingBot. **Lớp giao tiếp thiết bị dùng chung của hệ NEO** — `ThingEdu/neo-code` ghim đúng bản 2.2. Lưu ý: AGPL trong khi NeoClaw là MIT. |
 | **`tuanln/thingvui`** (paused) | — | MIT | Phần code C++ PCA9685 driver + host tests (6/6 PASS) giữ làm tham chiếu, sẽ tái dùng khi quay lại bản voice trực tiếp trên ESP32. |
 
 **Quyết định giữ nguyên:** dùng **đám mây ngoài xiaozhi.me** (gói Open Source miễn phí), chưa tự host ở chế độ trực tuyến. py-xiaozhi mặc định kết nối hạ tầng Xiaozhi này.
@@ -217,7 +218,8 @@ Tham chiếu plan 3 milestone (5 ngày dev) tại `NeoClaw/docs/PLAN-C3-NEOONE-2
 | **Tiếng Việt** | Xác nhận ASR của xiaozhi.me nhận diện tốt giọng trẻ em nói tiếng Việt. | Cần test với 5 trẻ thật trước pilot. |
 | **Độ trễ** | Chuỗi giọng nói → đám mây → MCP → Serial → động cơ có độ trễ; đo thực tế, chấp nhận được cho demo. | Chưa đo. |
 | **Phụ thuộc internet** | Chế độ trực tuyến cần mạng — chuẩn bị kịch bản offline cho Thợ Cả khi mất kết nối; chế độ ngoại tuyến giải quyết triệt để. | OK. |
-| **🆕 TelemetrixBackend chưa từng test với mạch thật** | Tất cả 33 test trong NeoClaw đều dùng SimulatorBackend. Chưa biết Serial / baud / timeout có lỗi gì khi tải thật. | Milestone B3 xử lý. |
+| **🆕 TelemetrixBackend chưa từng test với mạch thật** | Tất cả 33 test trong NeoClaw đều dùng SimulatorBackend. Chưa biết Serial / baud / timeout có lỗi gì khi tải thật. | Milestone B3 xử lý. Cập nhật 30/08/2026: đã có bộ nghiệm thu gated `pytest -m hardware` + `examples/verify_reverse.py`, chờ mạch. |
+| **🆕 Byte speed không đảo chiều được (phát hiện 21/05, sửa 30/08/2026)** | Firmware đọc `speed` là `uint8_t`, `if (speed >= 0)` luôn đúng → nhánh đảo chiều là mã chết. Phía host, `thingbot-telemetrix` đóng gói bằng `bytes()` nên số âm ném `ValueError`. Hai lỗi độc lập: lệnh lùi không gửi đi được, mà firmware nhận được cũng không giải mã được. Toàn bộ omni cần bánh quay ngược (`backward`, `strafe_*`, `rotate_*`, `diagonal_*`) không chạy được. | ✅ Đã sửa: wire format là bù hai của `int8_t`; `tbmath::decodeSpeedByte` + `encode_speed_byte`; 22 test Python + 7 host test C++. Mạch cũ **phải nạp lại firmware**. |
 | **🆕 Race condition trong watchdog + sensor callback** | Survey 2026-05-18 phát hiện `TelemetrixBackend._pin_values`, `SensorManager._callbacks` shared mutable state không có lock. Có thể garbled motor state khi nhiều input đồng thời. | Milestone C1 xử lý. |
 | **🆕 thingbot-telemetrix-arduino lib stub trống** | `lib/ThingBotTelemetrixArduino/ThingBotTelemetrixArduino.cpp` chỉ 38 byte (stub), toàn bộ code thực dồn vào `src/main.cpp` 15.6KB. Khó maintain, khó share. | Milestone B2 refactor. |
 | **🆕 OmniBase + RobotArm chưa unit test** | Mecanum kinematics + IK preset poses chỉ có model, chưa có test logic độc lập. | Milestone C2 xử lý. |
@@ -263,6 +265,11 @@ Tham chiếu plan 3 milestone (5 ngày dev) tại `NeoClaw/docs/PLAN-C3-NEOONE-2
 
 ## Phụ lục: lịch sử thay đổi tài liệu
 
+- **v2.2 · 30/08/2026** — cập nhật sau phiên sửa giao thức:
+  - §10: đánh dấu rủi ro TelemetrixBackend đã có bộ nghiệm thu gated; thêm dòng PROTOCOL-BUG byte
+    speed (phát hiện 21/05, sửa 30/08) kèm ghi chú mạch cũ phải nạp lại firmware.
+  - Bối cảnh sản phẩm: NeoClaw đã được đưa vào canon ThingEdu (`PRODUCT_CATALOG.md` mục 2.1) và
+    quan hệ với NEO Sport (C.4) ghi thành điểm treo **P-10** — chờ Ban Điều hành chốt WS/PIC.
 - **v2.1 · 2026-05-18** — cập nhật sau survey + pivot từ ThingVui:
   - §1: bổ sung dòng cuối bảng so sánh, đánh dấu ThingVui PAUSED.
   - §3: nâng đề xuất RAM NEO One lên ≥ 2GB (kèm con số ước tính memory budget).

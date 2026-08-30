@@ -20,6 +20,27 @@ from typing import Callable
 logger = logging.getLogger(__name__)
 
 
+# ── ThingBot DC wire protocol ──
+#
+# DC_WRITE payload is [motor, speed_byte]. `speed_byte` is a two's-complement
+# encoding of a signed speed in -100..100: firmware casts it back with
+# `(int8_t)command_buffer[1]`. Values 0..100 encode to themselves, so a board
+# running old firmware keeps its previous forward behaviour.
+def encode_speed_byte(speed: int) -> int:
+    """Encode a signed motor speed (-100..100) into one unsigned wire byte.
+
+    Args:
+        speed: -100 (full reverse) .. 100 (full forward). Out-of-range values
+            are clamped — a stray value must never reach the PCA9685 as an
+            out-of-range duty cycle.
+
+    Returns:
+        int in 0..255, two's complement of the clamped speed.
+    """
+    speed = max(-100, min(100, int(speed)))
+    return speed & 0xFF
+
+
 class TelemetrixBackend:
     """GPIO backend bridging IGPIOBackend to MEO ThingBot via thingbot-telemetrix.
 
@@ -173,22 +194,29 @@ class TelemetrixBackend:
     # Buzzer: 0-255 (0=off, mapped to PCA9685 PWM)
     # LED: 0-100 brightness (mapped to PCA9685 0-4095)
     #
-    # Firmware command format: [length, command_id, param1, param2]
-    #   DC_WRITE=7:    [2, 7, motor_num, speed_byte]
-    #   SERVO_WRITE=8: [2, 8, servo_num, angle_byte]
-    #   BUZZER_WRITE=9:[1, 9, freq_byte]
-    #   LED_WRITE=10:  [2, 10, led_num, state_byte]
+    # Firmware command format: [length, command_id, param1, param2].
+    # Command ids come from the `thingbot-telemetrix` library
+    # (ThingBotConstants in private_constants.py), NOT from this file:
+    #   DC_WRITE=101:     [3, 101, motor_num, speed_byte]
+    #   SERVO_WRITE=102:  [3, 102, servo_num, angle_byte]
+    #   BUZZER_WRITE=103: [2, 103, freq_byte]
+    #   LED_WRITE=104:    [3, 104, led_num, state_byte]
+    #
+    # Those ids match the MEO-3 firmware. A board flashed with the older
+    # tuanln fork listens on 7/8/9/10 and will not understand these — see
+    # docs/PROGRESS.md, entry 2026-08-30.
 
     def control_dc(self, motor_number: int, speed: int) -> None:
         """ThingBot DC motor control via PCA9685.
 
         Args:
             motor_number: 1-4 (M1-M4)
-            speed: -100 to 100 (negative = reverse, 0 = stop)
-                   Firmware maps |speed| 0-100 → PCA9685 duty 0-4095
+            speed: -100 to 100 (negative = reverse, 0 = stop). Sent on the
+                   wire as a two's-complement byte (see encode_speed_byte);
+                   firmware casts it back to int8_t and maps |speed| 0-100 →
+                   PCA9685 duty 0-4095.
         """
-        speed = max(-100, min(100, speed))
-        self._thingbot.control_dc(motor_number, speed)
+        self._thingbot.control_dc(motor_number, encode_speed_byte(speed))
 
     def control_servo(self, servo_number: int, angle: int) -> None:
         """ThingBot servo control via PCA9685.

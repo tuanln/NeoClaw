@@ -6,6 +6,150 @@
 
 ---
 
+## 2026-08-30 — Sửa PROTOCOL-BUG đảo chiều động cơ + NeoClaw vào canon ThingEdu
+
+### Bối cảnh
+
+Rà lại dự án phát hiện lỗi giao thức đã ghi nhận ngày 21/05 ("track riêng, không thuộc scope
+refactor") thực ra là **lỗi chặn đường**: mọi thao tác omni cần bánh quay ngược — `backward`,
+`strafe_left/right`, `rotate_cw/ccw`, toàn bộ `diagonal_*` — đều không chạy được trên mạch thật.
+Nghĩa là demo criteria Milestone B (`demo_pick_drop.py` có bước `strafe_left`) không thể pass
+trước khi sửa. Phiên này sửa dứt điểm cả hai đầu dây, và xử lý luôn việc NeoClaw không có mặt
+trong canon ThingEdu.
+
+### Đã làm
+
+**1 · Giao thức speed có dấu (TDD, 3 repo)**
+
+- Chẩn đoán: firmware đọc `speed` là `uint8_t` rồi kiểm tra `if (speed >= 0)` — luôn đúng, nhánh
+  đảo chiều là mã chết. Firmware **tự nó không bao giờ lùi được**, bất kể client gửi gì.
+- **Đính chính (kiểm chứng cuối phiên, sau khi tải được thư viện pip)**: triệu chứng ở phía host
+  không phải "chạy tới thay vì lùi". `thingbot_telemetrix` đóng gói bằng `bytes(command)`, mà
+  `bytes()` **ném `ValueError` với số âm** — nên lệnh lùi không bao giờ rời khỏi máy tính. Hai lỗi
+  độc lập, cả hai đều thật, và cùng được đóng bởi hợp đồng byte có dấu:
+  host trước đây không gửi đi được, firmware nhận được cũng không giải mã được.
+  Kịch bản "chạy tới ~96% với duty không xác định" chỉ xảy ra với client nào tự mask byte
+  (`map()` của Arduino không kẹp dải nên 196 → 8026, vượt thanh ghi 12-bit) — nay đã kẹp trong
+  `speedToDuty`.
+- Chốt wire format: `speed_byte` là **bù hai của số có dấu -100..100**. Giá trị 0..100 mã hóa ra
+  chính nó → mạch chạy firmware cũ giữ nguyên hành vi tiến.
+- `NeoClaw`: thêm `encode_speed_byte()` trong `telemetrix_backend.py`, `control_dc` gọi qua hàm
+  này. 22 test mới (`tests/test_hardware/test_dc_protocol.py`) — RED trước, GREEN sau, gồm round
+  trip qua phép cast `int8_t` và bất biến "byte lạ không bao giờ ra duty ngoài dải".
+- `thingbot-telemetrix-arduino`: tách phần toán thuần ra `lib/ThingBotTelemetrixArduino/ThingBotMotorMath.h`
+  (namespace `tbmath`, không phụ thuộc `<Arduino.h>` nên test được trên máy) — `decodeSpeedByte`,
+  `speedToDuty` (có clamp), `motorDuty`. `controlDc` đổi sang `int8_t` và dùng `motorDuty`;
+  `main.cpp` decode byte trước khi dispatch. `mapSpeedToPwm` nay clamp qua `speedToDuty`.
+- Host test không cần toolchain Arduino: `host-tests/` + Makefile, `make -C host-tests` → 7 PASS.
+- Nghiệm thu phần cứng: `tests/test_hardware/test_telemetrix_integration.py` (marker `hardware`,
+  gate bằng `THINGBOT_PORT`, mặc định deselect) + `examples/verify_reverse.py` — kịch bản 10 vòng
+  tiến/lùi cho người vận hành quan sát, đúng demo criteria B.
+
+**2 · Đưa NeoClaw vào canon ThingEdu** (`thingedu-canon`)
+
+- `PRODUCT_CATALOG.md`: thêm mục **2.1 Ngoài Bảng 2 — nền tảng robot** (NeoClaw/ClawBot, firmware
+  ThingBot, ThingVui paused); dòng NEO Sport (C.4) nay ghi rõ robot thi đấu chưa chốt nguồn.
+- `DECISIONS.md`: thêm điểm treo **P-10** — NeoClaw không có WS/PIC trong Bảng 2 và chồng lấn
+  C.4 NEO Sport; 3 phương án, người chốt anh Tuấn + Hùng. Không tự quyết.
+- `GLOSSARY.md`: thêm tên chuẩn **NeoClaw** và **ClawBot**.
+
+### Metrics
+
+| | Đầu phiên | Cuối phiên |
+|---|:---:|:---:|
+| pytest (NeoClaw) | 70 | **92** (+22), 9 deselected (hardware) |
+| Host test firmware | 0 | **7 PASS** (`make -C host-tests`) |
+| Ruff | 0 lỗi | 0 lỗi |
+| PlatformIO build | SUCCESS | SUCCESS — RAM 5.1% / Flash 21.2% (không đổi) |
+| Đảo chiều động cơ | mã chết | chạy được, chờ nghiệm thu mạch thật |
+
+### 🔴 Phát hiện cuối phiên — chặn đường lớn hơn lỗi vừa sửa
+
+Tải được `thingbot-telemetrix` 2.2 từ PyPI (thư viện mà README + setup guide bảo người dùng cài)
+và đọc mã. Hai điều:
+
+1. **Mã lệnh không khớp nhau.** Thư viện gửi `DC_WRITE = 101`, `SERVO_WRITE = 102`,
+   `BUZZER_WRITE = 103`, `LED_WRITE = 104` (`private_constants.py`). Firmware `tuanln/thingbot-telemetrix-arduino`
+   — bản mà tài liệu NeoClaw trỏ tới, và là bản vừa sửa — dùng **7 / 8 / 9 / 10** (`main.cpp`).
+   Nghĩa là **NeoClaw + thư viện pip + firmware này chưa từng chạy được với nhau**, chưa nói tới
+   chuyện lùi.
+2. **Không kiểm biên chỉ số lệnh.** `main.cpp:137` làm `command_entry = command_table[command];`
+   trên bảng 11 phần tử, không chặn `command` (lấy từ gói tin, 0-255). Gửi lệnh 101 vào firmware
+   này là đọc con trỏ hàm rác rồi nhảy vào đó — treo hoặc reset, không phải "lệnh bị bỏ qua".
+
+Đối chiếu thêm: fork **`MEO-3/thingbot-telemetrix-arduino`** (push gần nhất 12/08/2026, có bản
+BLE + release 3.0, khớp mã lệnh 101-104 của thư viện pip) mang **đúng lỗi `byte speed` +
+`if (speed >= 0)`** ở `ThingBotExtended.cpp` — tức bản firmware nhiều khả năng đang nằm trên kit
+thật vẫn chưa được sửa.
+
+### ✅ Đã chốt bằng bằng chứng: đối chiếu `ThingEdu/neo-code`
+
+Đọc `ThingEdu/neo-code` (IDE Python trên NEO One, push gần nhất 23/07/2026) — đây là nơi giữ lớp
+giao tiếp thiết bị mới nhất của hệ:
+
+- `features/arm/backends.py` dùng **`thingbot-telemetrix`**, gọi `board.thingbot().control_servo()`
+  — đúng API mà NeoClaw đang dùng.
+- `pyproject.toml`: `thingbot-telemetrix>=2.2`; `scripts/build_deb.sh` ghim `TELEMETRIX_VERSION=2.2`
+  và vendor sẵn vào `.deb` (apt không có gói tương ứng).
+- `_vendor/README.md` ghi rõ upstream: **`github.com/MEO-3/thingbot-telemetrix`**, giấy phép
+  **AGPL-3.0-or-later** — `neo-code` (MIT) khai cả hai trong `debian/copyright`.
+
+Vậy **chuẩn hiện hành của hệ = thư viện `thingbot-telemetrix` 2.2 + firmware MEO-3** (mã lệnh
+101-104). Không còn là câu hỏi mở. Đã cập nhật NeoClaw theo chuẩn đó:
+
+- `pyproject.toml`: thêm `thingbot-telemetrix>=2.2` vào extra `hardware`, kèm ghi chú giấy phép.
+- Sửa khối comment mã lệnh trong `telemetrix_backend.py` (đang ghi 7/8/9/10 — sai từ đầu; mã lệnh
+  do thư viện quyết định, không do file này).
+- README + setup guide: firmware bản chính là `MEO-3/thingbot-telemetrix-arduino`, giải thích vì
+  sao fork `tuanln` không dùng được với thư viện, thêm mục giấy phép AGPL, link sang `neo-code`.
+
+**Ghi chú kiến trúc đáng học từ neo-code**: mã học sinh chạy trong QProcess riêng và **không giữ
+cổng serial** — mọi lệnh robot ghi ra stdout dạng dòng có tiền tố `\x1e@@ARM ` kèm JSON, tiến trình
+chính đọc rồi mới chạm phần cứng (`features/arm/protocol.py`). NeoClaw đang cho sandbox học sinh
+sinh lệnh theo kiểu tương tự nhưng chưa tách quyền giữ cổng — đáng cân nhắc khi nối `ClawRobot` vào
+sandbox.
+
+### 🔻 Việc còn treo sau khi chốt
+
+- **Firmware MEO-3 vẫn mang lỗi byte speed chưa sửa** (`ThingBotExtended.cpp`, `byte speed` +
+  `if (speed >= 0)`). Bản vá đã có ở fork `tuanln` nhưng **chưa port sang MEO-3**, và tôi không có
+  quyền push lên org MEO-3 (`push=false`). Nghĩa là lùi/đi ngang **vẫn chưa chạy được trên board
+  thật** dù phía Python đã đúng. Cần anh Tuấn mở đường: hoặc cấp quyền, hoặc fork + PR chéo, hoặc
+  chuyển yêu cầu cho đội giữ MEO-3.
+- Thư viện `thingbot-telemetrix` cũng nên nhận cùng bản vá (`bytes()` ném `ValueError` với số âm) —
+  NeoClaw đã tự mã hoá trước khi gọi nên không chặn, nhưng client khác thì vẫn vướng.
+- Fork `tuanln` (mã lệnh 7-10, thiếu kiểm biên chỉ số lệnh ở `main.cpp:137`) nay là **bản tham
+  chiếu**, không phải bản chạy. MEO-3 dùng `lookup_command` quét bảng id→hàm, trả `nullptr` nếu
+  lệnh lạ — không có lỗi nhảy con trỏ rác.
+- Giấy phép: NeoClaw MIT phụ thuộc thư viện AGPL-3.0-or-later. Cùng họ vấn đề với P-09 (ThingBlock).
+
+### Còn lại
+
+- **Nghiệm thu 10/10 trên mạch thật** — vẫn cần phần cứng: 1 ThingBot ESP32-C3, cáp USB-C, nguồn
+  LiPo 7,4V cho motor rail, giá kê xe. Nạp firmware (`pio run -t upload`) rồi chạy
+  `THINGBOT_PORT=... python examples/verify_reverse.py`.
+- ~~Kiểm tra thư viện pip `thingbot-telemetrix`~~ — đã đọc mã (v2.2): không kẹp giá trị, nhưng
+  đóng gói bằng `bytes(command)` nên **số âm ném `ValueError`**; và mã lệnh lệch hẳn với firmware
+  này (xem mục phát hiện ở trên).
+
+### Lưu ý kỹ thuật phát hiện trong phiên
+
+- **Xung đột tên**: `main.cpp` có biến toàn cục `thingbot`, nên namespace toán phải đặt tên khác
+  (`tbmath`) — C++ không cho namespace và biến trùng tên ở cùng phạm vi.
+- **`buzzer()` lệch dải**: `thingbot.py` cho phép 0..255 nhưng firmware map theo thang 0..100.
+  Trước đây freq > 100 tràn thanh ghi 12-bit; nay bị clamp ở mức đầy. Nên siết dải phía Python
+  xuống 0..100 — chưa làm, ngoài phạm vi phiên này.
+- `site/` của canon đang **chậm hơn** tài liệu: chưa có P-09, và nay chưa có P-10 (đã bổ sung
+  trong cùng phiên; bản Artifact đã publish thì chưa cập nhật lại).
+- **CI đỏ vì lệch phiên bản ruff, không phải vì code**: `pyproject.toml` ghi `ruff>=0.4` nên CI kéo
+  bản mới nhất — 0.16.5 — trong khi máy dev chạy 0.15.x. Ruff 0.16 mở rộng bộ rule mặc định, ra 78
+  lỗi trên mã cũ (`UP045` 30, `BLE001` 18, `I001` 9, `S110` 6…); các file mới của phiên này sạch
+  dưới cả hai bản. Đã ghim `ruff>=0.15,<0.16` để CI xác định được. **Việc tồn**: một đợt dọn riêng
+  để lên 0.16 — phần lớn là sửa máy móc (`Optional[X]` → `X | None`, sắp xếp import), nhưng
+  `BLE001` (bắt Exception trần) và `S110` (try/except/pass) thì phải đọc từng chỗ.
+
+---
+
 ## 2026-05-21 — Milestone A + B (build) + C complete, pivot from ThingVui locked in
 
 ### Bối cảnh

@@ -38,9 +38,9 @@ Thay vi hoc tren man hinh, hoc sinh viet code Python de robot **di chuyen, gap d
 | | Tinh nang | Mo ta |
 |---|---|---|
 | **Robot** | ClawBot | Xe omni 4 banh (M1-M4) + tay robot 4-DOF (S1-S4) + can gat (S5) |
-| **AI** | Tutor thong minh | 4 che do: Teach / Free Play / Voice Control / Challenge |
-| **Giao duc** | 6 bai hoc | Tu "Hello ClawBot!" den viet function tu dong gap |
-| **Ngon ngu** | Tieng Viet + Anh | Dieu khien bang giong noi: "di tien", "sang trai 2 giay", "gap" |
+| **AI** | Tutor thong minh | Teach / Free Play / Challenge da chay. Voice Control: dang thiet ke (py-xiaozhi + MCP, xem brief §7) |
+| **Giao duc** | 6 bai hoc | Bo bai hoc hien tai viet cho ClawMachine (tieng Anh); dang chuyen sang API ClawBot + tieng Viet |
+| **Ngon ngu** | Tieng Viet + Anh | Hieu lenh chu tieng Viet: "di tien", "sang trai 2 giay", "gap". Giong noi chua noi day |
 | **Simulator** | Khong can hardware | Hoc va test day du chi voi laptop |
 | **IoT** | MQTT + WebSocket | Dieu khien tu xa, theo doi sensor real-time |
 | **Phan tich** | Progress tracking | SQLite log, theo doi tien do hoc sinh |
@@ -69,13 +69,14 @@ neoclaw teach --simulator
 ### 5 phut bat dau voi hardware (ThingBot + robot)
 
 ```bash
-# 1. Nap firmware ThingBot (mot lan)
-git clone https://github.com/tuanln/thingbot-telemetrix-arduino.git
+# 1. Nap firmware ThingBot (mot lan) — ban chinh la MEO-3, khop ma lenh
+#    voi thu vien thingbot-telemetrix. Xem docs/CLAWBOT-SETUP-GUIDE.md §2.2.
+git clone https://github.com/MEO-3/thingbot-telemetrix-arduino.git
 cd thingbot-telemetrix-arduino && pio run --target upload && cd ..
 
 # 2. Cai NeoClaw (neu chua)
 cd NeoClaw && source .venv/bin/activate
-pip install thingbot-telemetrix
+pip install "thingbot-telemetrix>=2.2"
 
 # 3. Cam USB-C tu NEO One/PC vao ThingBot — verify cong serial
 ls /dev/cu.usbmodem* /dev/ttyUSB*  # macOS / Linux
@@ -248,7 +249,7 @@ NeoClaw/
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 
-# Test suite (70 tests, ~1s)
+# Test suite (92 tests, ~1s). Test can phan cung that bi bo qua mac dinh.
 pytest -q
 
 # Lint
@@ -265,11 +266,45 @@ pip install pre-commit && pre-commit install
 
 **Thread safety:** `SensorManager` va `TelemetrixBackend` co lock + snapshot pattern cho callback dispatch — xem [tests/test_hardware/test_thread_safety.py](tests/test_hardware/test_thread_safety.py).
 
+### Nghiem thu tren mach that
+
+Test co marker `hardware` khong chay khi `pytest -q` (mac dinh `-m 'not hardware'`). Khi da cam mach:
+
+```bash
+pip install "thingbot-telemetrix>=2.2"
+export THINGBOT_PORT=/dev/cu.usbmodem1101      # macOS; /dev/ttyUSB0 tren Linux
+
+pytest -m hardware                              # duong day serial
+python examples/verify_reverse.py               # 10 vong tien/lui, nguoi van hanh cham diem
+```
+
+### Giao thuc speed co dau (quan trong khi nap firmware)
+
+Byte `speed` trong lenh DC_WRITE la **bu hai** cua so co dau -100..100
+(`neoclaw.hardware.telemetrix_backend.encode_speed_byte`). Firmware giai ma bang
+`tbmath::decodeSpeedByte`.
+
+Truoc 30/08/2026 firmware doc byte nay la `uint8_t` nen **khong the dao chieu dong co** — nhanh
+dao chieu la ma chet. Phia Python cung khong gui duoc: thu vien dong goi bang `bytes()`, ma
+`bytes()` nem `ValueError` voi so am. Ket qua: moi thao tac omni can banh quay nguoc (`backward`,
+`strafe_*`, `rotate_*`, `diagonal_*`) **khong chay duoc**. Mach nao con firmware cu **phai nap
+lai**:
+
+```bash
+cd thingbot-telemetrix-arduino && pio run --target upload
+```
+
+Gia tri tien 0..100 khong doi tren day, nen mach firmware cu van di tien binh thuong — trieu chung
+duy nhat la khong lui / khong di ngang duoc.
+
 ## Giay phep
 
 MIT — Tu do su dung, chinh sua, phan phoi.
 
 ## Lien ket
 
-- **ThingBot Firmware**: https://github.com/tuanln/thingbot-telemetrix-arduino
+- **ThingBot Firmware (ban chinh)**: https://github.com/MEO-3/thingbot-telemetrix-arduino — ma lenh 101-104, khop thu vien Python
+- **ThingBot Firmware (fork tham chieu)**: https://github.com/tuanln/thingbot-telemetrix-arduino — ma lenh 7-10, co host-test cho toan chieu quay
+- **Thu vien giao tiep thiet bi**: https://github.com/MEO-3/thingbot-telemetrix (`pip install thingbot-telemetrix`, AGPL-3.0-or-later)
+- **NEO Code**: https://github.com/ThingEdu/neo-code — IDE Python tren NEO One, dung chung lop giao tiep thiet bi nay
 - **Otto DIY** (tuong lai): https://www.ottodiy.com/
