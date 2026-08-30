@@ -17,7 +17,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-hardware = ["gpiozero>=2.0"]
+# thingbot-telemetrix la lop giao tiep thiet bi dung chung cua he NEO — cung
+# thu vien ma ThingEdu/neo-code ghim (TELEMETRIX_VERSION=2.2 trong
+# scripts/build_deb.sh). Luu y giay phep: thu vien la AGPL-3.0-or-later trong
+# khi NeoClaw la MIT.
+hardware = ["gpiozero>=2.0", "thingbot-telemetrix>=2.2"]
 iot = ["paho-mqtt>=2.0", "websockets>=12.0"]
 ai = ["openai>=1.0", "google-generativeai>=0.5"]
 web = ["fastapi>=0.110", "uvicorn[standard]>=0.29"]

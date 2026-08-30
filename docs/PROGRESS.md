@@ -82,10 +82,46 @@ BLE + release 3.0, khớp mã lệnh 101-104 của thư viện pip) mang **đún
 `if (speed >= 0)`** ở `ThingBotExtended.cpp` — tức bản firmware nhiều khả năng đang nằm trên kit
 thật vẫn chưa được sửa.
 
-**Cần chốt trước khi làm tiếp:** bản firmware nào là bản chính cho NeoClaw — `MEO-3` (khớp thư
-viện pip, có BLE, mới hơn) hay `tuanln` (tài liệu đang trỏ tới)? Nếu là MEO-3 thì phải port bản sửa
-byte có dấu sang đó và sửa lại tài liệu NeoClaw; nếu là tuanln thì phải sửa mã lệnh ở tầng Python
-và bổ sung kiểm biên chỉ số lệnh. Không tự quyết — chờ chủ dự án.
+### ✅ Đã chốt bằng bằng chứng: đối chiếu `ThingEdu/neo-code`
+
+Đọc `ThingEdu/neo-code` (IDE Python trên NEO One, push gần nhất 23/07/2026) — đây là nơi giữ lớp
+giao tiếp thiết bị mới nhất của hệ:
+
+- `features/arm/backends.py` dùng **`thingbot-telemetrix`**, gọi `board.thingbot().control_servo()`
+  — đúng API mà NeoClaw đang dùng.
+- `pyproject.toml`: `thingbot-telemetrix>=2.2`; `scripts/build_deb.sh` ghim `TELEMETRIX_VERSION=2.2`
+  và vendor sẵn vào `.deb` (apt không có gói tương ứng).
+- `_vendor/README.md` ghi rõ upstream: **`github.com/MEO-3/thingbot-telemetrix`**, giấy phép
+  **AGPL-3.0-or-later** — `neo-code` (MIT) khai cả hai trong `debian/copyright`.
+
+Vậy **chuẩn hiện hành của hệ = thư viện `thingbot-telemetrix` 2.2 + firmware MEO-3** (mã lệnh
+101-104). Không còn là câu hỏi mở. Đã cập nhật NeoClaw theo chuẩn đó:
+
+- `pyproject.toml`: thêm `thingbot-telemetrix>=2.2` vào extra `hardware`, kèm ghi chú giấy phép.
+- Sửa khối comment mã lệnh trong `telemetrix_backend.py` (đang ghi 7/8/9/10 — sai từ đầu; mã lệnh
+  do thư viện quyết định, không do file này).
+- README + setup guide: firmware bản chính là `MEO-3/thingbot-telemetrix-arduino`, giải thích vì
+  sao fork `tuanln` không dùng được với thư viện, thêm mục giấy phép AGPL, link sang `neo-code`.
+
+**Ghi chú kiến trúc đáng học từ neo-code**: mã học sinh chạy trong QProcess riêng và **không giữ
+cổng serial** — mọi lệnh robot ghi ra stdout dạng dòng có tiền tố `\x1e@@ARM ` kèm JSON, tiến trình
+chính đọc rồi mới chạm phần cứng (`features/arm/protocol.py`). NeoClaw đang cho sandbox học sinh
+sinh lệnh theo kiểu tương tự nhưng chưa tách quyền giữ cổng — đáng cân nhắc khi nối `ClawRobot` vào
+sandbox.
+
+### 🔻 Việc còn treo sau khi chốt
+
+- **Firmware MEO-3 vẫn mang lỗi byte speed chưa sửa** (`ThingBotExtended.cpp`, `byte speed` +
+  `if (speed >= 0)`). Bản vá đã có ở fork `tuanln` nhưng **chưa port sang MEO-3**, và tôi không có
+  quyền push lên org MEO-3 (`push=false`). Nghĩa là lùi/đi ngang **vẫn chưa chạy được trên board
+  thật** dù phía Python đã đúng. Cần anh Tuấn mở đường: hoặc cấp quyền, hoặc fork + PR chéo, hoặc
+  chuyển yêu cầu cho đội giữ MEO-3.
+- Thư viện `thingbot-telemetrix` cũng nên nhận cùng bản vá (`bytes()` ném `ValueError` với số âm) —
+  NeoClaw đã tự mã hoá trước khi gọi nên không chặn, nhưng client khác thì vẫn vướng.
+- Fork `tuanln` (mã lệnh 7-10, thiếu kiểm biên chỉ số lệnh ở `main.cpp:137`) nay là **bản tham
+  chiếu**, không phải bản chạy. MEO-3 dùng `lookup_command` quét bảng id→hàm, trả `nullptr` nếu
+  lệnh lạ — không có lỗi nhảy con trỏ rác.
+- Giấy phép: NeoClaw MIT phụ thuộc thư viện AGPL-3.0-or-later. Cùng họ vấn đề với P-09 (ThingBlock).
 
 ### Còn lại
 

@@ -194,11 +194,17 @@ class TelemetrixBackend:
     # Buzzer: 0-255 (0=off, mapped to PCA9685 PWM)
     # LED: 0-100 brightness (mapped to PCA9685 0-4095)
     #
-    # Firmware command format: [length, command_id, param1, param2]
-    #   DC_WRITE=7:    [2, 7, motor_num, speed_byte]
-    #   SERVO_WRITE=8: [2, 8, servo_num, angle_byte]
-    #   BUZZER_WRITE=9:[1, 9, freq_byte]
-    #   LED_WRITE=10:  [2, 10, led_num, state_byte]
+    # Firmware command format: [length, command_id, param1, param2].
+    # Command ids come from the `thingbot-telemetrix` library
+    # (ThingBotConstants in private_constants.py), NOT from this file:
+    #   DC_WRITE=101:     [3, 101, motor_num, speed_byte]
+    #   SERVO_WRITE=102:  [3, 102, servo_num, angle_byte]
+    #   BUZZER_WRITE=103: [2, 103, freq_byte]
+    #   LED_WRITE=104:    [3, 104, led_num, state_byte]
+    #
+    # Those ids match the MEO-3 firmware. A board flashed with the older
+    # tuanln fork listens on 7/8/9/10 and will not understand these — see
+    # docs/PROGRESS.md, entry 2026-08-30.
 
     def control_dc(self, motor_number: int, speed: int) -> None:
         """ThingBot DC motor control via PCA9685.

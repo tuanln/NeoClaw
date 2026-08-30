@@ -69,13 +69,14 @@ neoclaw teach --simulator
 ### 5 phut bat dau voi hardware (ThingBot + robot)
 
 ```bash
-# 1. Nap firmware ThingBot (mot lan)
-git clone https://github.com/tuanln/thingbot-telemetrix-arduino.git
+# 1. Nap firmware ThingBot (mot lan) — ban chinh la MEO-3, khop ma lenh
+#    voi thu vien thingbot-telemetrix. Xem docs/CLAWBOT-SETUP-GUIDE.md §2.2.
+git clone https://github.com/MEO-3/thingbot-telemetrix-arduino.git
 cd thingbot-telemetrix-arduino && pio run --target upload && cd ..
 
 # 2. Cai NeoClaw (neu chua)
 cd NeoClaw && source .venv/bin/activate
-pip install thingbot-telemetrix
+pip install "thingbot-telemetrix>=2.2"
 
 # 3. Cam USB-C tu NEO One/PC vao ThingBot — verify cong serial
 ls /dev/cu.usbmodem* /dev/ttyUSB*  # macOS / Linux
@@ -270,7 +271,7 @@ pip install pre-commit && pre-commit install
 Test co marker `hardware` khong chay khi `pytest -q` (mac dinh `-m 'not hardware'`). Khi da cam mach:
 
 ```bash
-pip install thingbot-telemetrix
+pip install "thingbot-telemetrix>=2.2"
 export THINGBOT_PORT=/dev/cu.usbmodem1101      # macOS; /dev/ttyUSB0 tren Linux
 
 pytest -m hardware                              # duong day serial
@@ -302,5 +303,8 @@ MIT — Tu do su dung, chinh sua, phan phoi.
 
 ## Lien ket
 
-- **ThingBot Firmware**: https://github.com/tuanln/thingbot-telemetrix-arduino
+- **ThingBot Firmware (ban chinh)**: https://github.com/MEO-3/thingbot-telemetrix-arduino — ma lenh 101-104, khop thu vien Python
+- **ThingBot Firmware (fork tham chieu)**: https://github.com/tuanln/thingbot-telemetrix-arduino — ma lenh 7-10, co host-test cho toan chieu quay
+- **Thu vien giao tiep thiet bi**: https://github.com/MEO-3/thingbot-telemetrix (`pip install thingbot-telemetrix`, AGPL-3.0-or-later)
+- **NEO Code**: https://github.com/ThingEdu/neo-code — IDE Python tren NEO One, dung chung lop giao tiep thiet bi nay
 - **Otto DIY** (tuong lai): https://www.ottodiy.com/

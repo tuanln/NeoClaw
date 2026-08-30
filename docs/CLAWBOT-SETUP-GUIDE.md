@@ -108,10 +108,23 @@ pip3 install platformio
 
 ### 2.2 Clone firmware
 
+**Ban chinh la firmware MEO-3** — cung ban ma thu vien `thingbot-telemetrix`
+(lop giao tiep thiet bi dung chung cua he NEO, xem 3.2) noi chuyen duoc:
+
 ```bash
-git clone https://github.com/tuanln/thingbot-telemetrix-arduino.git
+git clone https://github.com/MEO-3/thingbot-telemetrix-arduino.git
 cd thingbot-telemetrix-arduino
 ```
+
+> **Vi sao khong dung `tuanln/thingbot-telemetrix-arduino`.** Hai fork nay lech
+> ma lenh: thu vien Python gui `DC_WRITE=101, SERVO=102, BUZZER=103, LED=104`
+> (khop MEO-3), con fork `tuanln` doc `7/8/9/10`. Board nap fork `tuanln` se
+> khong hieu lenh nao tu NeoClaw. Fork `tuanln` giu lai lam tham chieu — no la
+> noi bo sung host-test cho phan toan chieu quay, xem PROGRESS.md.
+>
+> Firmware MEO-3 **van con loi byte speed khong dau** (nhanh dao chieu la ma
+> chet) tinh den 12/08/2026 — ban va da co o fork `tuanln`, chua port sang MEO-3.
+> Nghia la **lui/di ngang chua chay duoc tren board that** du phia Python da sua.
 
 ### 2.3 Kiem tra cau hinh
 
@@ -161,8 +174,17 @@ pip3 install -e ".[all]"
 ### 3.2 Cai dat thu vien ThingBot Python
 
 ```bash
-pip3 install thingbot-telemetrix
+pip3 install "thingbot-telemetrix>=2.2"
 ```
+
+Day la **lop giao tiep thiet bi dung chung cua he NEO**: `ThingEdu/neo-code` cung
+dung dung thu vien nay (ghim `TELEMETRIX_VERSION=2.2` trong `scripts/build_deb.sh`,
+kem ban vendor trong `.deb` vi apt khong co goi tuong ung). Upstream:
+`github.com/MEO-3/thingbot-telemetrix`.
+
+> **Giay phep:** thu vien la **AGPL-3.0-or-later**, trong khi NeoClaw la MIT.
+> `neo-code` xu ly bang cach ghi ca hai trong `debian/copyright`. Can ra soat
+> truoc khi dong goi ban thuong mai.
 
 ### 3.3 Cau hinh
 

@@ -80,8 +80,9 @@ Công thức phần cứng này giống hệt cách cộng đồng maker dựng 
 | xiaozhi-linux (thay thế) | `github.com/100askTeam/xiaozhi-linux` | Mã mở | Client Linux của 100ask — phương án dự phòng |
 | XiaoZhi AI Cloud | `xiaozhi.me` (gói Open Source) | Dịch vụ | ASR + LLM + TTS, console cấu hình tác tử |
 | NeoClaw | `github.com/tuanln/NeoClaw` | MIT | Điều khiển chuyển động (omni, tay) + lớp giáo dục. Tình trạng 2026-05-18: 7 module, 33 test (chạy được trong simulator), pyproject.toml + ruff. Chưa CI. |
-| ThingBot firmware | `github.com/tuanln/thingbot-telemetrix-arduino` | MIT | Firmware Telemetrix trên mạch ThingBot. Tình trạng 2026-05-18: last push 2026-02-08 — sẽ refresh ở Milestone B. |
-| thingbot-telemetrix | `pip install thingbot-telemetrix` | Mã mở | Thư viện Python cầu nối Serial NEO One ↔ ThingBot |
+| ThingBot firmware (**bản chính**) | `github.com/MEO-3/thingbot-telemetrix-arduino` | — | Firmware khớp mã lệnh 101-104 của thư viện; có cả bản BLE + serial. Cập nhật 30/08/2026: **vẫn mang lỗi byte speed không dấu**, chưa port bản vá. |
+| ThingBot firmware (fork tham chiếu) | `github.com/tuanln/thingbot-telemetrix-arduino` | MIT | Mã lệnh 7-10 → **không nói chuyện được với thư viện Python**. Giữ làm tham chiếu: đã sửa byte speed có dấu + có host-test cho phần toán chiều quay. |
+| thingbot-telemetrix | `github.com/MEO-3/thingbot-telemetrix` (`pip install "thingbot-telemetrix>=2.2"`) | **AGPL-3.0-or-later** | Thư viện Python cầu nối Serial NEO One ↔ ThingBot. **Lớp giao tiếp thiết bị dùng chung của hệ NEO** — `ThingEdu/neo-code` ghim đúng bản 2.2. Lưu ý: AGPL trong khi NeoClaw là MIT. |
 | **`tuanln/thingvui`** (paused) | — | MIT | Phần code C++ PCA9685 driver + host tests (6/6 PASS) giữ làm tham chiếu, sẽ tái dùng khi quay lại bản voice trực tiếp trên ESP32. |
 
 **Quyết định giữ nguyên:** dùng **đám mây ngoài xiaozhi.me** (gói Open Source miễn phí), chưa tự host ở chế độ trực tuyến. py-xiaozhi mặc định kết nối hạ tầng Xiaozhi này.
