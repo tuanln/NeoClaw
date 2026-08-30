@@ -247,3 +247,49 @@ class ClawState:
             "limits": dict(self.limits),
             "buttons": dict(self.buttons),
         }
+
+
+# ── Command vocabulary ───────────────────────────────────────────────────────
+#
+# The verbs the whole app speaks: student sandbox, natural-language parsing,
+# REST/WebSocket, CLI and the AI agent all produce ClawCommand objects and hand
+# them to neoclaw.hardware.dispatch. Kept here, next to ClawRobot's state, so
+# the vocabulary can never describe a robot that does not exist.
+
+
+class ClawCommandType(Enum):
+    """ClawBot verbs. Movement is omni (no Z axis — that was the gantry)."""
+
+    FORWARD = auto()
+    BACKWARD = auto()
+    STRAFE_LEFT = auto()
+    STRAFE_RIGHT = auto()
+    TURN_LEFT = auto()
+    TURN_RIGHT = auto()
+    STOP = auto()
+
+    ARM_POSE = auto()
+    GRIP = auto()
+    RELEASE = auto()
+    PICK_UP = auto()
+    PUT_DOWN = auto()
+    SWEEP = auto()
+
+    GET_STATE = auto()
+    EMERGENCY_STOP = auto()
+
+
+@dataclass
+class ClawCommand:
+    """One parsed command, from student code, natural language or an API call."""
+
+    command_type: ClawCommandType
+    args: tuple = ()
+    kwargs: dict = field(default_factory=dict)
+
+    def to_dict(self) -> dict:
+        return {
+            "cmd": self.command_type.name,
+            "args": list(self.args),
+            "kwargs": self.kwargs,
+        }

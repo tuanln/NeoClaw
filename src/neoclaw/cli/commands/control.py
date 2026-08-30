@@ -1,66 +1,59 @@
-"""neoclaw control — Direct claw control."""
+"""Interactive robot control from the terminal."""
 from __future__ import annotations
 
 import click
 
+from neoclaw.hardware.dispatch import COMMAND_NAMES, apply_command, command_from_name
+
+# Short aliases so the prompt stays quick to type.
+_ALIASES = {
+    "w": "forward",
+    "s": "backward",
+    "a": "strafe_left",
+    "d": "strafe_right",
+    "q": "turn_left",
+    "e": "turn_right",
+    "g": "grip",
+    "r": "release",
+    " ": "stop",
+}
+
 
 @click.command()
-@click.option("--simulator", is_flag=True, help="Use simulator instead of real hardware")
-@click.option("--speed", default=1.0, help="Motor speed (0.0-1.0)")
-def control(simulator, speed):
-    """Control the claw machine directly.
+@click.option("--simulator", is_flag=True, help="Chay khong can phan cung")
+@click.option("--speed", default=60, help="Toc do 0-100")
+def control(simulator: bool, speed: int):
+    """Dieu khien ClawBot bang ban phim.
 
-    Use arrow-like commands to move the claw.
-    Type 'help' for available commands.
+    Go ten lenh (forward, strafe_left, grip...) hoac phim tat w/a/s/d/q/e/g/r.
+    Go `state` de xem trang thai, `quit` de thoat.
     """
-    if simulator:
-        click.echo("Starting claw simulator...")
-        from neoclaw.hardware.simulator import ClawSimulator
-        sim = ClawSimulator()
-        claw = sim.machine
-    else:
-        click.echo("Connecting to hardware...")
-        from neoclaw.hardware.claw_machine import ClawMachine
-        claw = ClawMachine.create()
-        sim = None
+    from neoclaw.hardware.claw_robot import ClawRobot
 
-    click.echo("Claw ready! Type commands (left/right/up/down/forward/backward/grab/release/quit)")
-    click.echo(f"Speed: {speed}")
+    robot = ClawRobot.create(simulator=simulator)
+    click.echo(f"ClawBot san sang (simulator={simulator}). Lenh: {', '.join(sorted(COMMAND_NAMES))}")
 
-    commands = {
-        "left": lambda: claw.move_left(speed=speed),
-        "right": lambda: claw.move_right(speed=speed),
-        "up": lambda: claw.move_up(speed=speed),
-        "down": lambda: claw.move_down(speed=speed),
-        "forward": lambda: claw.move_forward(speed=speed),
-        "backward": lambda: claw.move_backward(speed=speed),
-        "grab": claw.grab,
-        "release": claw.release,
-        "state": lambda: click.echo(claw.get_state().to_dict()),
-        "stop": claw.emergency_stop,
-    }
+    try:
+        while True:
+            raw = click.prompt("claw", prompt_suffix="> ", default="", show_default=False)
+            name = _ALIASES.get(raw.strip(), raw.strip())
 
-    while True:
-        try:
-            cmd = click.prompt("claw", prompt_suffix="> ").strip().lower()
-        except (EOFError, KeyboardInterrupt):
-            break
+            if name in ("quit", "exit"):
+                break
+            if not name:
+                continue
+            if name == "state":
+                click.echo(robot.get_state().to_dict())
+                continue
 
-        if cmd in ("quit", "exit", "q"):
-            break
+            try:
+                command = command_from_name(name, speed=speed)
+            except KeyError as exc:
+                click.echo(str(exc))
+                continue
 
-        if cmd == "help":
-            click.echo("Commands: " + ", ".join(commands.keys()) + ", quit")
-            continue
-
-        handler = commands.get(cmd)
-        if handler:
-            handler()
-            if sim:
-                pos = sim.position
-                click.echo(f"  Position: x={pos[0]:.1f} y={pos[1]:.1f} z={pos[2]:.1f}")
-        else:
-            click.echo(f"Unknown command: {cmd}. Type 'help' for commands.")
-
-    claw.shutdown()
-    click.echo("Claw shut down.")
+            result = apply_command(robot, command)
+            if result is not None:
+                click.echo(result)
+    finally:
+        robot.shutdown()

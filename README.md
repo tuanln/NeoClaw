@@ -39,7 +39,7 @@ Thay vi hoc tren man hinh, hoc sinh viet code Python de robot **di chuyen, gap d
 |---|---|---|
 | **Robot** | ClawBot | Xe omni 4 banh (M1-M4) + tay robot 4-DOF (S1-S4) + can gat (S5) |
 | **AI** | Tutor thong minh | Teach / Free Play / Challenge da chay. Voice Control: dang thiet ke (py-xiaozhi + MCP, xem brief §7) |
-| **Giao duc** | 6 bai hoc | Bo bai hoc hien tai viet cho ClawMachine (tieng Anh); dang chuyen sang API ClawBot + tieng Viet |
+| **Giao duc** | 6 bai hoc | Tieng Viet, viet cho API ClawBot: di tien, di ngang, xoay, gap. 9 bai tap + thang goi y 4 cap |
 | **Ngon ngu** | Tieng Viet + Anh | Hieu lenh chu tieng Viet: "di tien", "sang trai 2 giay", "gap". Giong noi chua noi day |
 | **Simulator** | Khong can hardware | Hoc va test day du chi voi laptop |
 | **IoT** | MQTT + WebSocket | Dieu khien tu xa, theo doi sensor real-time |
@@ -149,6 +149,11 @@ grip()
 arm_pose("carry")
 backward(speed=40, duration=1.5)
 release()
+
+# Hoac dung hanh dong ghep san
+pick_up()
+strafe_left(speed=50, duration=1.0)
+put_down()
 ```
 
 ## Kien truc
@@ -157,8 +162,10 @@ release()
 ┌────────────────────────────────────────────────────────┐
 │              CLI / Web UI / AI Agent                    │
 │         neoclaw teach | control | monitor               │
+├──────────────┴─────────────────────────────────────────┤
+│   dispatch.py — mot bang lenh duy nhat                  │
 ├──────────────┬─────────────────────────────────────────┤
-│  ClawRobot   │    ClawMachine (legacy may gap)          │
+│  ClawRobot   │                                         │
 ├──────┬───────┤                                         │
 │OmniBase│RobotArm│                                      │
 │(M1-M4)│(S1-S5) │                                       │
@@ -178,6 +185,7 @@ release()
 | Tang | File | Vai tro |
 |------|------|---------|
 | **API** | `claw_robot.py` | ClawRobot = OmniBase + RobotArm. pick_up(), put_down() |
+| **Lenh** | `dispatch.py` | MOT bang lenh dung chung cho web, CLI, AI agent va sandbox hoc sinh |
 | **Omni** | `omni_base.py` | Mecanum kinematics: forward, strafe, rotate, vector drive |
 | **Arm** | `robot_arm.py` | 4-DOF + sweeper. Smooth servo, preset poses |
 | **ThingBot** | `thingbot.py` | Hardware truc tiep: dc(M1-M4), servo(S1-S5), buzzer, led |

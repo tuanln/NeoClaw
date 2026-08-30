@@ -18,9 +18,13 @@ _LIMIT_PREFIX = "__NEO_CLAW_LIMIT__:"
 
 
 def generate_claw_wrapper_code() -> str:
-    """Generate Python code that wraps the claw module for student code.
+    """Generate the `claw` module a student's code imports.
 
-    Student code imports `claw` → proxy captures calls → JSON on stdout.
+    Student code runs in a separate process and never touches the serial port:
+    each call prints one `__NEO_CLAW__:` line, and the parent turns those lines
+    into ClawCommand objects for neoclaw.hardware.dispatch. The verbs here are
+    the robot's own — anything callable in the sandbox has a handler in
+    COMMAND_HANDLERS, and a test enforces that.
     """
     max_cmds = get_settings().execution.max_claw_commands
     return textwrap.dedent(f'''\
@@ -32,7 +36,7 @@ def generate_claw_wrapper_code() -> str:
         _MAX_CLAW_COMMANDS = {max_cmds}
 
         class _NeoClawProxy:
-            """Proxy that captures claw commands and prints them as JSON."""
+            """Proxy that captures robot commands and prints them as JSON."""
 
             def __init__(self):
                 self._cmd_count = 0
@@ -49,54 +53,91 @@ def generate_claw_wrapper_code() -> str:
                 print(f"__NEO_CLAW__:{{json.dumps(data)}}", flush=True)
                 time.sleep(0.01)
 
-            def move_left(self, duration=0.5, speed=1.0):
-                """Move claw left."""
-                self._emit("MOVE_LEFT", duration=duration, speed=speed)
+            # ── Di chuyen (de omni) ──
 
-            def move_right(self, duration=0.5, speed=1.0):
-                """Move claw right."""
-                self._emit("MOVE_RIGHT", duration=duration, speed=speed)
+            def forward(self, speed=60, duration=1.0):
+                """Di tien."""
+                self._emit("FORWARD", speed=speed, duration=duration)
 
-            def move_forward(self, duration=0.5, speed=1.0):
-                """Move claw forward."""
-                self._emit("MOVE_FORWARD", duration=duration, speed=speed)
+            def backward(self, speed=60, duration=1.0):
+                """Di lui."""
+                self._emit("BACKWARD", speed=speed, duration=duration)
 
-            def move_backward(self, duration=0.5, speed=1.0):
-                """Move claw backward."""
-                self._emit("MOVE_BACKWARD", duration=duration, speed=speed)
+            def strafe_left(self, speed=60, duration=1.0):
+                """Di ngang sang trai (khong xoay than xe)."""
+                self._emit("STRAFE_LEFT", speed=speed, duration=duration)
 
-            def move_up(self, duration=0.5, speed=1.0):
-                """Move claw up."""
-                self._emit("MOVE_UP", duration=duration, speed=speed)
+            def strafe_right(self, speed=60, duration=1.0):
+                """Di ngang sang phai (khong xoay than xe)."""
+                self._emit("STRAFE_RIGHT", speed=speed, duration=duration)
 
-            def move_down(self, duration=0.5, speed=1.0):
-                """Move claw down."""
-                self._emit("MOVE_DOWN", duration=duration, speed=speed)
+            def turn_left(self, speed=50, duration=0.5):
+                """Xoay trai tai cho."""
+                self._emit("TURN_LEFT", speed=speed, duration=duration)
 
-            def grab(self):
-                """Activate electromagnet."""
-                self._emit("GRAB")
+            def turn_right(self, speed=50, duration=0.5):
+                """Xoay phai tai cho."""
+                self._emit("TURN_RIGHT", speed=speed, duration=duration)
+
+            def stop(self):
+                """Dung banh xe."""
+                self._emit("STOP")
+
+            # ── Tay gap ──
+
+            def arm_pose(self, pose="rest"):
+                """Dat tay vao mot tu the: home, reach_forward, reach_down, carry, rest."""
+                self._emit("ARM_POSE", pose=pose)
+
+            def grip(self):
+                """Dong kep."""
+                self._emit("GRIP")
 
             def release(self):
-                """Deactivate electromagnet."""
+                """Mo kep."""
                 self._emit("RELEASE")
 
+            def pick_up(self):
+                """Ha tay, gap, roi nang len."""
+                self._emit("PICK_UP")
+
+            def put_down(self):
+                """Ha tay roi tha ra."""
+                self._emit("PUT_DOWN")
+
+            def sweep(self):
+                """Gat vat the bang can gat."""
+                self._emit("SWEEP")
+
+            # ── Trang thai ──
+
             def get_state(self):
-                """Get claw state (returns placeholder in sandbox)."""
+                """Doc trang thai robot.
+
+                Trong sandbox, tien trinh con khong giu cong serial nen khong
+                doc duoc trang thai that — tra ve mot ban do co du cac khoa ma
+                bai hoc dung, de code cua hoc sinh chay duoc o ca hai noi.
+                """
                 self._emit("GET_STATE")
-                return {{"magnet": False, "position": "unknown"}}
+                return {{
+                    "gripper_holding": False,
+                    "moving": False,
+                    "heading": 0.0,
+                    "wheels": {{
+                        "FRONT_LEFT": 0, "FRONT_RIGHT": 0,
+                        "REAR_LEFT": 0, "REAR_RIGHT": 0,
+                    }},
+                }}
 
         _proxy = _NeoClawProxy()
         _claw_module = types.ModuleType("claw")
-        _claw_module.move_left = _proxy.move_left
-        _claw_module.move_right = _proxy.move_right
-        _claw_module.move_forward = _proxy.move_forward
-        _claw_module.move_backward = _proxy.move_backward
-        _claw_module.move_up = _proxy.move_up
-        _claw_module.move_down = _proxy.move_down
-        _claw_module.grab = _proxy.grab
-        _claw_module.release = _proxy.release
-        _claw_module.get_state = _proxy.get_state
+        for _name in (
+            "forward", "backward", "strafe_left", "strafe_right",
+            "turn_left", "turn_right", "stop",
+            "arm_pose", "grip", "release", "pick_up", "put_down", "sweep",
+            "get_state",
+        ):
+            setattr(_claw_module, _name, getattr(_proxy, _name))
         sys.modules["claw"] = _claw_module
     ''')
 

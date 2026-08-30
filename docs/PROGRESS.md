@@ -6,6 +6,87 @@
 
 ---
 
+## 2026-08-30 (phiên 2) — Gộp về một mô hình robot: ClawMachine ra khỏi đường chính
+
+### Bối cảnh
+
+Rà soát phát hiện dự án đang là **hai hệ thống trong một repo**: phần cứng đã pivot sang ClawBot
+(xe omni + tay 4-DOF) từ tháng 5, nhưng toàn bộ tầng ứng dụng — web API, CLI, AI agent, telemetry,
+sandbox học sinh, 6 bài học — vẫn nói chuyện với `ClawMachine`, tức máy gắp thùng kính 3 trục của
+prototype đầu. `ClawRobot` chỉ có `demo_pick_drop.py` gọi tới, coverage 0%. Một em nhỏ học đúng
+theo bài sẽ viết `move_left()` — hàm mà robot thật không có.
+
+### Đã làm
+
+**Từ vựng lệnh về đúng chỗ.** `ClawCommandType` + `ClawCommand` chuyển từ `agent/models.py` xuống
+`hardware/models.py` — cạnh trạng thái của chính robot, nên từ vựng không thể mô tả một cỗ máy
+không tồn tại. `agent/models.py` re-export để đường import cũ không gãy.
+
+**Một bảng lệnh thay cho ba.** `hardware/dispatch.py` mới: `COMMAND_HANDLERS`, `apply_command()`,
+`COMMAND_NAMES`, `command_from_name()`. Trước đây web routes, CLI và AI agent mỗi nơi chép tay một
+bảng `{"move_left": claw.move_left, ...}` — cả ba đều viết cho máy gắp. Đây cũng là bề mặt mà lớp
+MCP nên bọc: mỗi `ClawCommandType` một tool, không sinh thêm bảng ánh xạ thứ hai.
+
+**Nối lại toàn bộ tầng trên**: `web/routes/control.py` (thêm `GET /commands` liệt kê động từ),
+`cli/commands/control.py` (viết lại, thêm phím tắt w/a/s/d/q/e), `cli/commands/monitor.py` (hiển
+thị bánh xe + khớp tay thay vì nam châm/limit switch), `iot/telemetry.py` (gói tin nay mang tốc độ
+4 bánh + góc khớp tay + `gripper_holding`; trường `magnet_active` đổi thành `gripper_holding`),
+`agent/claw_agent.py` (nhận `ClawRobot`, bỏ bảng lệnh riêng).
+
+**Sandbox + bài học + prompt viết lại theo API robot.** Sandbox nay cấp: `forward`, `backward`,
+`strafe_left/right`, `turn_left/right`, `stop`, `arm_pose`, `grip`, `release`, `pick_up`,
+`put_down`, `sweep`, `get_state`. 6 bài học + 9 bài tập + thang gợi ý 4 cấp viết lại **bằng tiếng
+Việt** cho robot thật. Prompt của AI Tutor cũng viết lại — trước đó nó vẫn được mớm API máy gắp,
+tức sẽ tự tin dạy trẻ hàm không tồn tại.
+
+**`claw_machine.py` và `simulator.py` gắn nhãn LEGACY** ở đầu file, không module nào trong app
+import nữa. Chưa xoá: chờ chủ dự án trả lời câu hỏi mở số 4 (có giữ backend PicoClaw không).
+
+### Bốn lỗi thật bị test mới bắt được
+
+1. **`emergency_stop()` báo cáo sai trạng thái.** Nó gọi `stop_all_motors()` ở tầng ThingBot nhưng
+   `OmniBase` không biết, nên `get_state()` vẫn trả tốc độ bánh cũ — đúng lúc mà một dashboard
+   tuyệt đối không được nói dối. Nay dừng ở cả hai tầng.
+2. **Bài tập không thể qua được.** `expected_concepts` của vài bài ghi "comparison", "math",
+   "sequence", "state_machine" — những khái niệm `_detect_concepts()` không hề nhận diện, nên học
+   sinh làm đúng vẫn bị chấm thiếu vĩnh viễn. Nay có test buộc mọi khái niệm phải nhận diện được.
+3. **Bài 4 đọc khoá không tồn tại.** Bài dạy `get_state()['gripper_holding']` trong khi sandbox trả
+   về `{"wheels": {}, "arm": {}}` → `KeyError` ngay khi em nhỏ chạy thử.
+4. **Prompt AI Tutor mô tả API máy gắp** — hạng lệch pha đắt nhất, vì nó nghe rất có thẩm quyền.
+
+### Bốn bất biến mới — chặn lệch pha tái diễn
+
+| Test | Ràng buộc |
+|---|---|
+| `test_every_command_type_has_a_handler` | Từ vựng nêu động từ nào thì phải chạy được động từ đó |
+| `test_every_sandbox_verb_is_executable_on_the_robot` | Hàm sandbox cấp cho học sinh ⊆ bảng lệnh robot |
+| `test_starter_code_only_calls_verbs_the_robot_has` | Mọi tên hàm trong bài học phải có thật (trừ hàm học sinh tự định nghĩa) |
+| `test_no_prompt_mentions_a_gantry_verb` | Prompt AI chỉ được nhắc hàm có thật |
+
+Đây là thứ lẽ ra phải có từ đầu: bộ bài học dạy `move_left()` suốt nhiều tháng sau khi sản phẩm đã
+thành robot, mà không một test nào đỏ.
+
+### Metrics
+
+| | Đầu phiên | Cuối phiên |
+|---|:---:|:---:|
+| pytest | 92 | **153** (+61) |
+| Thời gian chạy | ~1.0s | ~1.4s |
+| Ruff | 0 lỗi | 0 lỗi |
+| Bảng lệnh chép tay | 3 | **1** |
+| Module app import `ClawMachine` | 7 | **0** |
+
+### Còn lại
+
+- Xoá hẳn `claw_machine.py` + `simulator.py` khi chủ dự án chốt (câu hỏi mở 4).
+- `web/` chưa có test: `fastapi` không nằm trong extra `dev` nên CI không cài. Route nay mỏng và uỷ
+  quyền hết cho `dispatch` (đã test), nhưng nếu muốn phủ thật thì thêm `neoclaw[web]` vào CI.
+- Cầu MCP ↔ py-xiaozhi: nay đã có bề mặt sạch để bọc — `COMMAND_NAMES` + `apply_command`.
+- Câu hỏi thiết kế còn mở, học từ neo-code: hiện tiến trình con của học sinh và tiến trình chính
+  chưa tách quyền giữ cổng serial.
+
+---
+
 ## 2026-08-30 — Sửa PROTOCOL-BUG đảo chiều động cơ + NeoClaw vào canon ThingEdu
 
 ### Bối cảnh

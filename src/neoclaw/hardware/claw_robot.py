@@ -63,10 +63,10 @@ class ClawRobot:
         robot.shutdown()
     """
 
-    def __init__(self, thingbot: ThingBot):
+    def __init__(self, thingbot: ThingBot, smooth: bool = True):
         self._bot = thingbot
         self._base = OmniBase(thingbot)
-        self._arm = RobotArm(thingbot, smooth=True)
+        self._arm = RobotArm(thingbot, smooth=smooth)
         self._state = ClawRobotState()
 
         # Register switch as emergency stop by default
@@ -77,12 +77,15 @@ class ClawRobot:
         cls,
         simulator: bool = False,
         com_port: str | None = None,
+        smooth: bool = True,
     ) -> ClawRobot:
         """Factory method to create a ClawRobot.
 
         Args:
             simulator: If True, use simulated hardware
             com_port: Serial port for ThingBot (None = auto-detect)
+            smooth: Move servos gradually. Real servos need it; a simulated
+                run does not, and the sleeps it inserts dominate test time.
         """
         if simulator:
             bot = ThingBot.create_simulator()
@@ -93,7 +96,7 @@ class ClawRobot:
                 arduino_instance_id=settings.hardware.arduino_instance_id,
             )
 
-        robot = cls(bot)
+        robot = cls(bot, smooth=smooth)
         logger.info(f"ClawRobot created (simulator={simulator})")
         return robot
 
@@ -201,8 +204,15 @@ class ClawRobot:
             self.emergency_stop()
 
     def emergency_stop(self) -> None:
-        """Stop everything immediately."""
+        """Stop everything immediately.
+
+        Cuts power at the ThingBot level first — that is the fast path — then
+        clears OmniBase's own wheel state. Without the second step the robot
+        stops but `get_state()` keeps reporting the speeds it had before, which
+        is exactly the moment a dashboard must not lie.
+        """
         self._bot.stop_all_motors()
+        self._base.stop()
         logger.warning("EMERGENCY STOP")
 
     # ── State ──

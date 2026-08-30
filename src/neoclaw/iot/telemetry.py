@@ -1,4 +1,4 @@
-"""Telemetry collection from claw machine."""
+"""Telemetry collection from the ClawBot robot."""
 from __future__ import annotations
 
 import logging
@@ -7,22 +7,22 @@ import time
 from typing import Callable, Optional
 
 from neoclaw.config.settings import get_settings
-from neoclaw.hardware.claw_machine import ClawMachine
+from neoclaw.hardware.claw_robot import ClawRobot
 from neoclaw.iot.models import TelemetryPacket
 
 logger = logging.getLogger(__name__)
 
 
 class TelemetryCollector:
-    """Collects and publishes telemetry data from the claw machine."""
+    """Collects and publishes telemetry data from a ClawRobot."""
 
     def __init__(
         self,
-        claw: ClawMachine,
+        robot: ClawRobot,
         device_id: str = "default",
         on_telemetry: Optional[Callable[[TelemetryPacket], None]] = None,
     ):
-        self._claw = claw
+        self._robot = robot
         self._device_id = device_id
         self._interval = get_settings().iot.telemetry_interval
         self._on_telemetry = on_telemetry
@@ -44,13 +44,25 @@ class TelemetryCollector:
 
     def collect_once(self) -> TelemetryPacket:
         """Collect a single telemetry packet."""
-        state = self._claw.get_state()
+        state = self._robot.get_state().to_dict()
+
+        # A wheel counts as active when it is turning, in either direction.
+        motor_states = {
+            wheel: speed != 0 for wheel, speed in state["base"]["wheels"].items()
+        }
+        # Joint angles ride along as sensor readings — a dashboard plots them
+        # the same way it plots anything else numeric.
+        sensor_readings = {
+            f"arm_{joint.lower()}": float(angle)
+            for joint, angle in state["arm"]["joints"].items()
+        }
+        sensor_readings["heading"] = float(state["base"]["heading"])
 
         packet = TelemetryPacket(
             device_id=self._device_id,
-            motor_states={k: v.active for k, v in state.motors.items()},
-            sensor_readings={k: float(v) for k, v in state.limits.items()},
-            magnet_active=state.magnet_active,
+            motor_states=motor_states,
+            sensor_readings=sensor_readings,
+            gripper_holding=bool(state["arm"]["gripper_holding"]),
         )
 
         # Try to get system metrics

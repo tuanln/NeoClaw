@@ -1,5 +1,18 @@
 # NeoClaw — Kien Truc He Thong
 
+> **Cap nhat 30/08/2026 — mot mo hinh robot duy nhat.**
+>
+> Tai lieu nay mo ta giai doan hai mo hinh song song (ClawRobot + ClawMachine). Tu 30/08/2026,
+> **toan bo tang ung dung chay tren ClawRobot**: web API, CLI, AI agent, telemetry va sandbox hoc
+> sinh deu tao `ClawCommand` roi goi `neoclaw.hardware.dispatch.apply_command`. Chi con MOT bang
+> lenh, o `dispatch.py`, thay vi ba bang chep tay o ba noi.
+>
+> `claw_machine.py` (may gap 3 truc) va `simulator.py` (mo phong 3D cua may gap) nay la **ma tham
+> chieu**: khong module nao trong app import chung nua. Cac muc ben duoi noi ve chung chi con gia
+> tri lich su. Xem `docs/PROGRESS.md` muc 30/08/2026.
+
+
+
 ## Tong quan
 
 NeoClaw la nen tang giao duc Python + IoT, su dung robot lam thiet bi hoc tap.
@@ -318,10 +331,12 @@ bot.shutdown()
 ### Claw Machine (legacy, tuong thich nguoc)
 
 ```python
-from neoclaw.hardware.claw_machine import ClawMachine
+from neoclaw.hardware.claw_robot import ClawRobot
 
-claw = ClawMachine.create(board="meo_thingbot")
-claw.move_left(duration=1.0)
+robot = ClawRobot.create()            # hoac create(simulator=True)
+robot.forward(speed=60, duration=1.0)
+robot.strafe_left(speed=50, duration=0.5)
+robot.pick_up()
 claw.grab()
 claw.shutdown()
 ```

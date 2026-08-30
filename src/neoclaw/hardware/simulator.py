@@ -1,4 +1,10 @@
-"""Full claw machine simulator for learning without hardware."""
+"""LEGACY — 3D position simulator for the arcade claw machine.
+
+Superseded by `ClawRobot.create(simulator=True)`, which runs the real robot
+code against a simulated ThingBot instead of a second, parallel model of a
+machine the product no longer ships. Kept for reference alongside
+`claw_machine.py`; see docs/PROGRESS.md open question 4.
+"""
 from __future__ import annotations
 
 import logging
