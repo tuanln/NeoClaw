@@ -20,6 +20,27 @@ from typing import Callable
 logger = logging.getLogger(__name__)
 
 
+# ── ThingBot DC wire protocol ──
+#
+# DC_WRITE payload is [motor, speed_byte]. `speed_byte` is a two's-complement
+# encoding of a signed speed in -100..100: firmware casts it back with
+# `(int8_t)command_buffer[1]`. Values 0..100 encode to themselves, so a board
+# running old firmware keeps its previous forward behaviour.
+def encode_speed_byte(speed: int) -> int:
+    """Encode a signed motor speed (-100..100) into one unsigned wire byte.
+
+    Args:
+        speed: -100 (full reverse) .. 100 (full forward). Out-of-range values
+            are clamped — a stray value must never reach the PCA9685 as an
+            out-of-range duty cycle.
+
+    Returns:
+        int in 0..255, two's complement of the clamped speed.
+    """
+    speed = max(-100, min(100, int(speed)))
+    return speed & 0xFF
+
+
 class TelemetrixBackend:
     """GPIO backend bridging IGPIOBackend to MEO ThingBot via thingbot-telemetrix.
 
@@ -184,11 +205,12 @@ class TelemetrixBackend:
 
         Args:
             motor_number: 1-4 (M1-M4)
-            speed: -100 to 100 (negative = reverse, 0 = stop)
-                   Firmware maps |speed| 0-100 → PCA9685 duty 0-4095
+            speed: -100 to 100 (negative = reverse, 0 = stop). Sent on the
+                   wire as a two's-complement byte (see encode_speed_byte);
+                   firmware casts it back to int8_t and maps |speed| 0-100 →
+                   PCA9685 duty 0-4095.
         """
-        speed = max(-100, min(100, speed))
-        self._thingbot.control_dc(motor_number, speed)
+        self._thingbot.control_dc(motor_number, encode_speed_byte(speed))
 
     def control_servo(self, servo_number: int, angle: int) -> None:
         """ThingBot servo control via PCA9685.

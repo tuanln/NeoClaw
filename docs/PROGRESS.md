@@ -6,6 +6,77 @@
 
 ---
 
+## 2026-08-30 — Sửa PROTOCOL-BUG đảo chiều động cơ + NeoClaw vào canon ThingEdu
+
+### Bối cảnh
+
+Rà lại dự án phát hiện lỗi giao thức đã ghi nhận ngày 21/05 ("track riêng, không thuộc scope
+refactor") thực ra là **lỗi chặn đường**: mọi thao tác omni cần bánh quay ngược — `backward`,
+`strafe_left/right`, `rotate_cw/ccw`, toàn bộ `diagonal_*` — đều không chạy được trên mạch thật.
+Nghĩa là demo criteria Milestone B (`demo_pick_drop.py` có bước `strafe_left`) không thể pass
+trước khi sửa. Phiên này sửa dứt điểm cả hai đầu dây, và xử lý luôn việc NeoClaw không có mặt
+trong canon ThingEdu.
+
+### Đã làm
+
+**1 · Giao thức speed có dấu (TDD, 3 repo)**
+
+- Chẩn đoán đầy đủ: firmware đọc `speed` là `uint8_t` rồi kiểm tra `if (speed >= 0)` — luôn đúng,
+  nhánh đảo chiều là mã chết. Python gửi thẳng -100..100 xuống `command_buffer[1]` (1 byte).
+  Trên mạch thật, -60 thành 196, `map(196, 0, 100, 0, 4095)` = 8026 **vượt dải 12-bit** của
+  PCA9685 → không chỉ sai chiều mà còn duty không xác định (~96% tiến).
+- Chốt wire format: `speed_byte` là **bù hai của số có dấu -100..100**. Giá trị 0..100 mã hóa ra
+  chính nó → mạch chạy firmware cũ giữ nguyên hành vi tiến.
+- `NeoClaw`: thêm `encode_speed_byte()` trong `telemetrix_backend.py`, `control_dc` gọi qua hàm
+  này. 22 test mới (`tests/test_hardware/test_dc_protocol.py`) — RED trước, GREEN sau, gồm round
+  trip qua phép cast `int8_t` và bất biến "byte lạ không bao giờ ra duty ngoài dải".
+- `thingbot-telemetrix-arduino`: tách phần toán thuần ra `lib/ThingBotTelemetrixArduino/ThingBotMotorMath.h`
+  (namespace `tbmath`, không phụ thuộc `<Arduino.h>` nên test được trên máy) — `decodeSpeedByte`,
+  `speedToDuty` (có clamp), `motorDuty`. `controlDc` đổi sang `int8_t` và dùng `motorDuty`;
+  `main.cpp` decode byte trước khi dispatch. `mapSpeedToPwm` nay clamp qua `speedToDuty`.
+- Host test không cần toolchain Arduino: `host-tests/` + Makefile, `make -C host-tests` → 7 PASS.
+- Nghiệm thu phần cứng: `tests/test_hardware/test_telemetrix_integration.py` (marker `hardware`,
+  gate bằng `THINGBOT_PORT`, mặc định deselect) + `examples/verify_reverse.py` — kịch bản 10 vòng
+  tiến/lùi cho người vận hành quan sát, đúng demo criteria B.
+
+**2 · Đưa NeoClaw vào canon ThingEdu** (`thingedu-canon`)
+
+- `PRODUCT_CATALOG.md`: thêm mục **2.1 Ngoài Bảng 2 — nền tảng robot** (NeoClaw/ClawBot, firmware
+  ThingBot, ThingVui paused); dòng NEO Sport (C.4) nay ghi rõ robot thi đấu chưa chốt nguồn.
+- `DECISIONS.md`: thêm điểm treo **P-10** — NeoClaw không có WS/PIC trong Bảng 2 và chồng lấn
+  C.4 NEO Sport; 3 phương án, người chốt anh Tuấn + Hùng. Không tự quyết.
+- `GLOSSARY.md`: thêm tên chuẩn **NeoClaw** và **ClawBot**.
+
+### Metrics
+
+| | Đầu phiên | Cuối phiên |
+|---|:---:|:---:|
+| pytest (NeoClaw) | 70 | **92** (+22), 9 deselected (hardware) |
+| Host test firmware | 0 | **7 PASS** (`make -C host-tests`) |
+| Ruff | 0 lỗi | 0 lỗi |
+| PlatformIO build | SUCCESS | SUCCESS — RAM 5.1% / Flash 21.2% (không đổi) |
+| Đảo chiều động cơ | mã chết | chạy được, chờ nghiệm thu mạch thật |
+
+### Còn lại
+
+- **Nghiệm thu 10/10 trên mạch thật** — vẫn cần phần cứng: 1 ThingBot ESP32-C3, cáp USB-C, nguồn
+  LiPo 7,4V cho motor rail, giá kê xe. Nạp firmware (`pio run -t upload`) rồi chạy
+  `THINGBOT_PORT=... python examples/verify_reverse.py`.
+- Kiểm tra thư viện pip `thingbot-telemetrix` có truyền byte 0..255 nguyên vẹn không (không cài
+  được ở máy dev, chưa đọc được mã). Nếu thư viện tự kẹp 0..100 thì phải vá thêm ở đó — đây là mắt
+  xích duy nhất của chuỗi chưa đọc được bằng mắt.
+
+### Lưu ý kỹ thuật phát hiện trong phiên
+
+- **Xung đột tên**: `main.cpp` có biến toàn cục `thingbot`, nên namespace toán phải đặt tên khác
+  (`tbmath`) — C++ không cho namespace và biến trùng tên ở cùng phạm vi.
+- **`buzzer()` lệch dải**: `thingbot.py` cho phép 0..255 nhưng firmware map theo thang 0..100.
+  Trước đây freq > 100 tràn thanh ghi 12-bit; nay bị clamp ở mức đầy. Nên siết dải phía Python
+  xuống 0..100 — chưa làm, ngoài phạm vi phiên này.
+- `site/` của canon đang **chậm hơn** tài liệu: chưa có P-09, và nay chưa có P-10.
+
+---
+
 ## 2026-05-21 — Milestone A + B (build) + C complete, pivot from ThingVui locked in
 
 ### Bối cảnh

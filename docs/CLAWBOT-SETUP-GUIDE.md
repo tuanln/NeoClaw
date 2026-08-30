@@ -518,6 +518,29 @@ neoclaw teach --simulator
 | Motor khong quay | Thieu nguon | Kiem tra pin VIN (7-12V). USB khong du dong |
 | Motor quay nguoc | Dao day | Doi 2 day cua motor do tren ThingBot |
 | Robot di lech | Toc do khong deu | Chinh speed tung banh trong code |
+| **Di tien duoc nhung khong lui / khong di ngang** | **Firmware cu truoc 30/08/2026** | **Nap lai firmware**: `cd thingbot-telemetrix-arduino && pio run -t upload`. Xem muc "Giao thuc speed co dau" ben duoi |
+| `strafe_left` / `rotate_cw` chay nhu di tien | Nhu tren — byte speed doc la unsigned | Nhu tren. Kiem chung: `python examples/verify_reverse.py` |
+
+#### Giao thuc speed co dau
+
+Lenh DC_WRITE mang `speed` trong **mot byte, ma hoa bu hai** cho so co dau -100..100. Firmware giai
+ma bang `tbmath::decodeSpeedByte`, Python ma hoa bang
+`neoclaw.hardware.telemetrix_backend.encode_speed_byte`.
+
+Truoc 30/08/2026 firmware doc byte nay la `uint8_t` roi kiem tra `if (speed >= 0)` — luon dung voi
+kieu khong dau, nen nhanh dao chieu la ma chet. Hau qua tren mach that: `backward`, `strafe_left`,
+`strafe_right`, `rotate_cw`, `rotate_ccw` va moi `diagonal_*` deu **chay toi** thay vi lui/ngang,
+voi duty khong xac dinh (gia tri am tran qua thanh ghi 12-bit cua PCA9685).
+
+Gia tri tien 0..100 khong doi tren day. Vi vay mach chay firmware cu van di tien binh thuong —
+day la ly do trieu chung de bi bo qua khi chi thu `forward()`.
+
+Nghiem thu sau khi nap lai:
+
+```bash
+export THINGBOT_PORT=/dev/cu.usbmodem1101   # macOS; /dev/ttyUSB0 tren Linux
+python examples/verify_reverse.py           # 10 vong, tung banh tien roi lui
+```
 
 ### Servo
 
