@@ -21,10 +21,16 @@ trong canon ThingEdu.
 
 **1 · Giao thức speed có dấu (TDD, 3 repo)**
 
-- Chẩn đoán đầy đủ: firmware đọc `speed` là `uint8_t` rồi kiểm tra `if (speed >= 0)` — luôn đúng,
-  nhánh đảo chiều là mã chết. Python gửi thẳng -100..100 xuống `command_buffer[1]` (1 byte).
-  Trên mạch thật, -60 thành 196, `map(196, 0, 100, 0, 4095)` = 8026 **vượt dải 12-bit** của
-  PCA9685 → không chỉ sai chiều mà còn duty không xác định (~96% tiến).
+- Chẩn đoán: firmware đọc `speed` là `uint8_t` rồi kiểm tra `if (speed >= 0)` — luôn đúng, nhánh
+  đảo chiều là mã chết. Firmware **tự nó không bao giờ lùi được**, bất kể client gửi gì.
+- **Đính chính (kiểm chứng cuối phiên, sau khi tải được thư viện pip)**: triệu chứng ở phía host
+  không phải "chạy tới thay vì lùi". `thingbot_telemetrix` đóng gói bằng `bytes(command)`, mà
+  `bytes()` **ném `ValueError` với số âm** — nên lệnh lùi không bao giờ rời khỏi máy tính. Hai lỗi
+  độc lập, cả hai đều thật, và cùng được đóng bởi hợp đồng byte có dấu:
+  host trước đây không gửi đi được, firmware nhận được cũng không giải mã được.
+  Kịch bản "chạy tới ~96% với duty không xác định" chỉ xảy ra với client nào tự mask byte
+  (`map()` của Arduino không kẹp dải nên 196 → 8026, vượt thanh ghi 12-bit) — nay đã kẹp trong
+  `speedToDuty`.
 - Chốt wire format: `speed_byte` là **bù hai của số có dấu -100..100**. Giá trị 0..100 mã hóa ra
   chính nó → mạch chạy firmware cũ giữ nguyên hành vi tiến.
 - `NeoClaw`: thêm `encode_speed_byte()` trong `telemetrix_backend.py`, `control_dc` gọi qua hàm
@@ -57,14 +63,38 @@ trong canon ThingEdu.
 | PlatformIO build | SUCCESS | SUCCESS — RAM 5.1% / Flash 21.2% (không đổi) |
 | Đảo chiều động cơ | mã chết | chạy được, chờ nghiệm thu mạch thật |
 
+### 🔴 Phát hiện cuối phiên — chặn đường lớn hơn lỗi vừa sửa
+
+Tải được `thingbot-telemetrix` 2.2 từ PyPI (thư viện mà README + setup guide bảo người dùng cài)
+và đọc mã. Hai điều:
+
+1. **Mã lệnh không khớp nhau.** Thư viện gửi `DC_WRITE = 101`, `SERVO_WRITE = 102`,
+   `BUZZER_WRITE = 103`, `LED_WRITE = 104` (`private_constants.py`). Firmware `tuanln/thingbot-telemetrix-arduino`
+   — bản mà tài liệu NeoClaw trỏ tới, và là bản vừa sửa — dùng **7 / 8 / 9 / 10** (`main.cpp`).
+   Nghĩa là **NeoClaw + thư viện pip + firmware này chưa từng chạy được với nhau**, chưa nói tới
+   chuyện lùi.
+2. **Không kiểm biên chỉ số lệnh.** `main.cpp:137` làm `command_entry = command_table[command];`
+   trên bảng 11 phần tử, không chặn `command` (lấy từ gói tin, 0-255). Gửi lệnh 101 vào firmware
+   này là đọc con trỏ hàm rác rồi nhảy vào đó — treo hoặc reset, không phải "lệnh bị bỏ qua".
+
+Đối chiếu thêm: fork **`MEO-3/thingbot-telemetrix-arduino`** (push gần nhất 12/08/2026, có bản
+BLE + release 3.0, khớp mã lệnh 101-104 của thư viện pip) mang **đúng lỗi `byte speed` +
+`if (speed >= 0)`** ở `ThingBotExtended.cpp` — tức bản firmware nhiều khả năng đang nằm trên kit
+thật vẫn chưa được sửa.
+
+**Cần chốt trước khi làm tiếp:** bản firmware nào là bản chính cho NeoClaw — `MEO-3` (khớp thư
+viện pip, có BLE, mới hơn) hay `tuanln` (tài liệu đang trỏ tới)? Nếu là MEO-3 thì phải port bản sửa
+byte có dấu sang đó và sửa lại tài liệu NeoClaw; nếu là tuanln thì phải sửa mã lệnh ở tầng Python
+và bổ sung kiểm biên chỉ số lệnh. Không tự quyết — chờ chủ dự án.
+
 ### Còn lại
 
 - **Nghiệm thu 10/10 trên mạch thật** — vẫn cần phần cứng: 1 ThingBot ESP32-C3, cáp USB-C, nguồn
   LiPo 7,4V cho motor rail, giá kê xe. Nạp firmware (`pio run -t upload`) rồi chạy
   `THINGBOT_PORT=... python examples/verify_reverse.py`.
-- Kiểm tra thư viện pip `thingbot-telemetrix` có truyền byte 0..255 nguyên vẹn không (không cài
-  được ở máy dev, chưa đọc được mã). Nếu thư viện tự kẹp 0..100 thì phải vá thêm ở đó — đây là mắt
-  xích duy nhất của chuỗi chưa đọc được bằng mắt.
+- ~~Kiểm tra thư viện pip `thingbot-telemetrix`~~ — đã đọc mã (v2.2): không kẹp giá trị, nhưng
+  đóng gói bằng `bytes(command)` nên **số âm ném `ValueError`**; và mã lệnh lệch hẳn với firmware
+  này (xem mục phát hiện ở trên).
 
 ### Lưu ý kỹ thuật phát hiện trong phiên
 

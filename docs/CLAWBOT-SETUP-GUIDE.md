@@ -528,9 +528,14 @@ ma bang `tbmath::decodeSpeedByte`, Python ma hoa bang
 `neoclaw.hardware.telemetrix_backend.encode_speed_byte`.
 
 Truoc 30/08/2026 firmware doc byte nay la `uint8_t` roi kiem tra `if (speed >= 0)` — luon dung voi
-kieu khong dau, nen nhanh dao chieu la ma chet. Hau qua tren mach that: `backward`, `strafe_left`,
-`strafe_right`, `rotate_cw`, `rotate_ccw` va moi `diagonal_*` deu **chay toi** thay vi lui/ngang,
-voi duty khong xac dinh (gia tri am tran qua thanh ghi 12-bit cua PCA9685).
+kieu khong dau, nen nhanh dao chieu la ma chet: firmware tu no khong bao gio lui duoc. Phia host
+cung chan: thu vien `thingbot-telemetrix` dong goi bang `bytes()`, ma `bytes()` nem `ValueError`
+voi so am — lenh lui khong roi khoi may tinh. Ket qua: `backward`, `strafe_left`, `strafe_right`,
+`rotate_cw`, `rotate_ccw` va moi `diagonal_*` **khong chay duoc**.
+
+Rieng client nao tu mask byte am thanh 0..255 thi gap loi thu ba: `map()` cua Arduino khong kep
+dai, 196 → 8026, vuot thanh ghi 12-bit cua PCA9685 → banh chay toi voi duty khong xac dinh. Nay da
+kep trong `speedToDuty`.
 
 Gia tri tien 0..100 khong doi tren day. Vi vay mach chay firmware cu van di tien binh thuong —
 day la ly do trieu chung de bi bo qua khi chi thu `forward()`.

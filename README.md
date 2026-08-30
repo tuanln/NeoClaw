@@ -283,9 +283,11 @@ Byte `speed` trong lenh DC_WRITE la **bu hai** cua so co dau -100..100
 (`neoclaw.hardware.telemetrix_backend.encode_speed_byte`). Firmware giai ma bang
 `tbmath::decodeSpeedByte`.
 
-Truoc 30/08/2026 firmware doc byte nay la `uint8_t` nen **khong the dao chieu dong co** — moi thao
-tac omni can banh quay nguoc (`backward`, `strafe_*`, `rotate_*`, `diagonal_*`) deu chay sai. Mach
-nao con firmware cu **phai nap lai**:
+Truoc 30/08/2026 firmware doc byte nay la `uint8_t` nen **khong the dao chieu dong co** — nhanh
+dao chieu la ma chet. Phia Python cung khong gui duoc: thu vien dong goi bang `bytes()`, ma
+`bytes()` nem `ValueError` voi so am. Ket qua: moi thao tac omni can banh quay nguoc (`backward`,
+`strafe_*`, `rotate_*`, `diagonal_*`) **khong chay duoc**. Mach nao con firmware cu **phai nap
+lai**:
 
 ```bash
 cd thingbot-telemetrix-arduino && pio run --target upload
