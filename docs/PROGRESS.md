@@ -73,7 +73,14 @@ trong canon ThingEdu.
 - **`buzzer()` lệch dải**: `thingbot.py` cho phép 0..255 nhưng firmware map theo thang 0..100.
   Trước đây freq > 100 tràn thanh ghi 12-bit; nay bị clamp ở mức đầy. Nên siết dải phía Python
   xuống 0..100 — chưa làm, ngoài phạm vi phiên này.
-- `site/` của canon đang **chậm hơn** tài liệu: chưa có P-09, và nay chưa có P-10.
+- `site/` của canon đang **chậm hơn** tài liệu: chưa có P-09, và nay chưa có P-10 (đã bổ sung
+  trong cùng phiên; bản Artifact đã publish thì chưa cập nhật lại).
+- **CI đỏ vì lệch phiên bản ruff, không phải vì code**: `pyproject.toml` ghi `ruff>=0.4` nên CI kéo
+  bản mới nhất — 0.16.5 — trong khi máy dev chạy 0.15.x. Ruff 0.16 mở rộng bộ rule mặc định, ra 78
+  lỗi trên mã cũ (`UP045` 30, `BLE001` 18, `I001` 9, `S110` 6…); các file mới của phiên này sạch
+  dưới cả hai bản. Đã ghim `ruff>=0.15,<0.16` để CI xác định được. **Việc tồn**: một đợt dọn riêng
+  để lên 0.16 — phần lớn là sửa máy móc (`Optional[X]` → `X | None`, sắp xếp import), nhưng
+  `BLE001` (bắt Exception trần) và `S110` (try/except/pass) thì phải đọc từng chỗ.
 
 ---
 

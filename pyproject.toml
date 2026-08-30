@@ -26,7 +26,9 @@ dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
     "pytest-cov>=5.0",
-    "ruff>=0.4",
+    # Ghim: ruff 0.16 mở rộng bộ rule mặc định → 78 lỗi mới trên mã cũ
+    # (UP045, BLE001, I001, S110...). Nâng lên 0.16 là một đợt dọn riêng.
+    "ruff>=0.15,<0.16",
 ]
 all = ["neoclaw[hardware,iot,ai,web,analytics]"]
 
