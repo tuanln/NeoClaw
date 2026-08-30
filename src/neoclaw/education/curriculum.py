@@ -1,4 +1,11 @@
-"""Curriculum and lesson definitions for claw machine Python education."""
+"""Bộ bài học Python cho ClawBot.
+
+Mỗi bài dạy một khái niệm Python bằng chính chuyển động của robot: đi tới, đi
+ngang, xoay, gắp. Tên hàm trong starter_code phải là hàm mà sandbox học sinh
+thật sự cung cấp (neoclaw.agent.code_executor.generate_claw_wrapper_code) —
+tests/test_education/test_curriculum_contract.py giữ cho hai bên không lệch
+nhau như bộ bài cũ, vốn viết cho máy gắp thùng kính trong khi sản phẩm là robot.
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -28,34 +35,34 @@ class Lesson:
 CLAW_LESSONS = [
     Lesson(
         id=1,
-        title="Hello Claw!",
-        description="Learn to import modules and call functions to move the claw",
+        title="Chào ClawBot!",
+        description="Gọi hàm để robot đi và gắp — dòng lệnh đầu tiên của em",
         concepts=["import", "function_call"],
         exercises=[
             Exercise(
                 id="c1_l1_e1",
-                title="First Move",
-                description="Import the claw module and move the claw left",
+                title="Bước đi đầu tiên",
+                description="Cho robot đi tới trong 1 giây",
                 starter_code=(
                     "from claw import *\n"
                     "\n"
-                    "# Move the claw to the left for 1 second\n"
-                    "move_left(duration=___)\n"
+                    "# Cho robot đi tới trong 1 giây\n"
+                    "forward(duration=___)\n"
                 ),
                 expected_concepts=["import", "function_call"],
                 difficulty=1,
             ),
             Exercise(
                 id="c1_l1_e2",
-                title="Grab Something!",
-                description="Move down and activate the magnet",
+                title="Gắp một món đồ",
+                description="Hạ tay xuống rồi đóng kẹp lại",
                 starter_code=(
                     "from claw import *\n"
                     "\n"
-                    "# Step 1: Move down to reach the object\n"
-                    "move_down(duration=2.0)\n"
+                    "# Bước 1: hạ tay xuống chỗ món đồ\n"
+                    "arm_pose('reach_down')\n"
                     "\n"
-                    "# Step 2: Activate the magnet to grab\n"
+                    "# Bước 2: đóng kẹp để giữ món đồ\n"
                     "___\n"
                 ),
                 expected_concepts=["function_call"],
@@ -65,106 +72,106 @@ CLAW_LESSONS = [
     ),
     Lesson(
         id=2,
-        title="Variables & Speed",
-        description="Use variables to control speed and duration",
-        concepts=["variables", "float", "PWM"],
+        title="Biến và tốc độ",
+        description="Dùng biến để đổi tốc độ của xe, từ 0 đến 100",
+        concepts=["variables", "float"],
         exercises=[
             Exercise(
                 id="c1_l2_e1",
-                title="Speed Control",
-                description="Use a variable to set the claw speed",
+                title="Chỉnh tốc độ",
+                description="Đặt tốc độ vào một biến rồi dùng lại",
                 starter_code=(
                     "from claw import *\n"
                     "\n"
-                    "# Create a speed variable (0.0 to 1.0)\n"
-                    "speed = ___\n"
+                    "# Tốc độ nhận số từ 0 đến 100\n"
+                    "toc_do = ___\n"
                     "\n"
-                    "# Move left at the chosen speed\n"
-                    "move_left(duration=1.0, speed=speed)\n"
+                    "# Đi tới với tốc độ vừa đặt\n"
+                    "forward(duration=1.0, speed=toc_do)\n"
                 ),
                 expected_concepts=["variables", "float"],
                 difficulty=2,
             ),
             Exercise(
                 id="c1_l2_e2",
-                title="Slow and Fast",
-                description="Move at different speeds to see the difference",
+                title="Chậm và nhanh",
+                description="So sánh hai tốc độ bằng chính mắt em",
                 starter_code=(
                     "from claw import *\n"
                     "\n"
-                    "slow = 0.3\n"
-                    "fast = ___\n"
+                    "cham = 30\n"
+                    "nhanh = ___\n"
                     "\n"
-                    "# Move slowly to position\n"
-                    "move_right(duration=2.0, speed=slow)\n"
+                    "# Đi ngang sang phải thật chậm\n"
+                    "strafe_right(duration=2.0, speed=cham)\n"
                     "\n"
-                    "# Move fast back\n"
-                    "move_left(duration=1.0, speed=fast)\n"
+                    "# Rồi đi ngang về bên trái thật nhanh\n"
+                    "strafe_left(duration=1.0, speed=nhanh)\n"
                 ),
-                expected_concepts=["variables", "float", "comparison"],
+                expected_concepts=["variables", "float"],
                 difficulty=2,
             ),
         ],
     ),
     Lesson(
         id=3,
-        title="Loops for Motion",
-        description="Use for loops to create repeated motions",
+        title="Vòng lặp cho chuyển động",
+        description="Lặp lại một chuyển động mà không phải chép đi chép lại",
         concepts=["for_loop", "range"],
         exercises=[
             Exercise(
                 id="c1_l3_e1",
-                title="Zigzag Pattern",
-                description="Use a loop to make the claw zigzag",
+                title="Đường zigzag",
+                description="Dùng vòng lặp cho xe đi ngang qua lại",
                 starter_code=(
                     "from claw import *\n"
                     "\n"
-                    "# Make the claw zigzag 3 times\n"
+                    "# Cho xe zigzag 3 lần\n"
                     "for i in range(___):\n"
-                    "    move_right(duration=0.5)\n"
-                    "    move_left(duration=0.5)\n"
+                    "    strafe_right(duration=0.5)\n"
+                    "    strafe_left(duration=0.5)\n"
                 ),
                 expected_concepts=["for_loop", "range"],
                 difficulty=2,
             ),
             Exercise(
                 id="c1_l3_e2",
-                title="Increasing Speed",
-                description="Loop with increasing speed each iteration",
+                title="Mỗi vòng một nhanh hơn",
+                description="Tính tốc độ mới trong mỗi vòng lặp",
                 starter_code=(
                     "from claw import *\n"
                     "\n"
-                    "# Move right 5 times, each time faster\n"
+                    "# Xoay 5 lần, lần sau nhanh hơn lần trước\n"
                     "for i in range(5):\n"
-                    "    speed = (i + 1) / ___\n"
-                    "    move_right(duration=0.3, speed=speed)\n"
-                    "    print(f'Speed: {speed}')\n"
+                    "    toc_do = (i + 1) * ___\n"
+                    "    turn_right(duration=0.3, speed=toc_do)\n"
+                    "    print(f'Tốc độ: {toc_do}')\n"
                 ),
-                expected_concepts=["for_loop", "math", "f-string"],
+                expected_concepts=["for_loop", "range", "f-string"],
                 difficulty=3,
             ),
         ],
     ),
     Lesson(
         id=4,
-        title="Conditionals & Sensors",
-        description="Use if/else to respond to sensor data",
-        concepts=["if_else", "boolean", "comparison"],
+        title="Hỏi robot rồi mới quyết định",
+        description="Đọc trạng thái robot và dùng if/else để chọn việc cần làm",
+        concepts=["if_else", "boolean", "dict_access"],
         exercises=[
             Exercise(
                 id="c1_l4_e1",
-                title="Smart Movement",
-                description="Check state before moving",
+                title="Đừng gắp hai lần",
+                description="Chỉ đóng kẹp khi tay đang trống",
                 starter_code=(
                     "from claw import *\n"
                     "\n"
-                    "state = get_state()\n"
+                    "trang_thai = get_state()\n"
                     "\n"
-                    "# Only grab if magnet is not already active\n"
-                    "if not state['magnet']:\n"
+                    "# Chỉ gắp khi tay chưa giữ gì cả\n"
+                    "if not trang_thai['gripper_holding']:\n"
                     "    ___\n"
                     "else:\n"
-                    "    print('Magnet already active!')\n"
+                    "    print('Tay đang giữ đồ rồi!')\n"
                 ),
                 expected_concepts=["if_else", "dict_access", "boolean"],
                 difficulty=3,
@@ -173,31 +180,31 @@ CLAW_LESSONS = [
     ),
     Lesson(
         id=5,
-        title="Custom Functions",
-        description="Create reusable functions for claw operations",
-        concepts=["def", "parameters", "return"],
+        title="Tự viết hàm của em",
+        description="Gói một chuỗi việc thành một cái tên, rồi gọi lại tuỳ thích",
+        concepts=["def", "parameters"],
         exercises=[
             Exercise(
                 id="c1_l5_e1",
-                title="Move Function",
-                description="Create a function that moves to a position",
+                title="Hàm đi tới một chỗ",
+                description="Viết hàm nhận hai khoảng thời gian rồi đưa xe tới đó",
                 starter_code=(
                     "from claw import *\n"
                     "\n"
-                    "def move_to_position(x_duration, y_duration):\n"
-                    "    '''Move claw to a position using duration.'''\n"
-                    "    if x_duration > 0:\n"
-                    "        move_right(duration=x_duration)\n"
-                    "    elif x_duration < 0:\n"
-                    "        move_left(duration=___)\n"
-                    "    \n"
-                    "    if y_duration > 0:\n"
-                    "        move_forward(duration=y_duration)\n"
-                    "    elif y_duration < 0:\n"
-                    "        move_backward(duration=abs(y_duration))\n"
+                    "def di_toi_cho(giay_ngang, giay_thang):\n"
+                    "    # Đưa xe đi ngang rồi đi thẳng\n"
+                    "    if giay_ngang > 0:\n"
+                    "        strafe_right(duration=giay_ngang)\n"
+                    "    elif giay_ngang < 0:\n"
+                    "        strafe_left(duration=___)\n"
                     "\n"
-                    "# Test: move right 1s, forward 0.5s\n"
-                    "move_to_position(1.0, 0.5)\n"
+                    "    if giay_thang > 0:\n"
+                    "        forward(duration=giay_thang)\n"
+                    "    elif giay_thang < 0:\n"
+                    "        backward(duration=abs(giay_thang))\n"
+                    "\n"
+                    "# Thử: sang phải 1 giây, đi tới 0.5 giây\n"
+                    "di_toi_cho(1.0, 0.5)\n"
                 ),
                 expected_concepts=["def", "parameters", "abs"],
                 difficulty=3,
@@ -206,49 +213,41 @@ CLAW_LESSONS = [
     ),
     Lesson(
         id=6,
-        title="Full Grab Sequence",
-        description="Build a complete grab-and-retrieve automation",
-        concepts=["state_machine", "error_handling", "functions"],
+        title="Chuyến gắp hoàn chỉnh",
+        description="Ghép mọi thứ đã học thành một chuyến đi lấy đồ rồi mang về",
+        concepts=["def", "function_call"],
         exercises=[
             Exercise(
                 id="c1_l6_e1",
-                title="Auto Grab",
-                description="Write a complete sequence: position → lower → grab → lift → return",
+                title="Tự động lấy đồ",
+                description="Đi tới chỗ đồ, gắp, mang về, rồi đặt xuống",
                 starter_code=(
                     "from claw import *\n"
                     "\n"
-                    "def auto_grab(x_time, y_time):\n"
-                    "    '''Automated grab sequence.'''\n"
-                    "    # Step 1: Move to position\n"
-                    "    move_right(duration=x_time)\n"
-                    "    move_forward(duration=y_time)\n"
-                    "    \n"
-                    "    # Step 2: Lower the claw\n"
-                    "    ___\n"
-                    "    \n"
-                    "    # Step 3: Grab\n"
-                    "    grab()\n"
-                    "    \n"
-                    "    # Step 4: Lift\n"
-                    "    move_up(duration=2.0)\n"
-                    "    \n"
-                    "    # Step 5: Return to start\n"
-                    "    move_backward(duration=y_time)\n"
-                    "    move_left(duration=x_time)\n"
-                    "    \n"
-                    "    # Step 6: Release\n"
+                    "def di_lay_do(giay_ngang, giay_thang):\n"
+                    "    # Bước 1: đi tới chỗ món đồ\n"
+                    "    strafe_right(duration=giay_ngang)\n"
+                    "    forward(duration=giay_thang)\n"
+                    "\n"
+                    "    # Bước 2: hạ tay, gắp, rồi nâng lên\n"
                     "    ___\n"
                     "\n"
-                    "# Try grabbing at position (1.5s right, 1.0s forward)\n"
-                    "auto_grab(1.5, 1.0)\n"
+                    "    # Bước 3: mang về chỗ cũ\n"
+                    "    backward(duration=giay_thang)\n"
+                    "    strafe_left(duration=giay_ngang)\n"
+                    "\n"
+                    "    # Bước 4: đặt món đồ xuống\n"
+                    "    ___\n"
+                    "\n"
+                    "# Thử: sang phải 1.5 giây, đi tới 1 giây\n"
+                    "di_lay_do(1.5, 1.0)\n"
                 ),
-                expected_concepts=["state_machine", "functions", "sequence"],
+                expected_concepts=["def", "parameters", "function_call"],
                 difficulty=4,
             ),
         ],
     ),
 ]
-
 
 def get_lessons(phase: int = 1) -> list[Lesson]:
     """Get lessons for the given phase."""

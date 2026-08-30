@@ -10,45 +10,78 @@ from neoclaw.agent.models import ClawCommand, ClawCommandType
 
 logger = logging.getLogger(__name__)
 
-# Vietnamese/English keyword mapping to commands
+# Vietnamese/English keywords → ClawBot commands.
+#
+# Written for the robot the product ships: an omni base (forward/back, sideways,
+# turn in place) plus a 4-DOF arm. There is no up/down — that was the gantry
+# claw machine's Z axis, and "đi lên" now parses to nothing rather than to a
+# move the robot cannot make.
+#
+# Text is lower-cased and stripped of diacritics before matching, so each
+# Vietnamese phrase is written here without them and both spellings work.
+# Longest phrases match first (see _keyword_parse), which is what keeps
+# "xoay trai" from being eaten by "trai".
 _KEYWORD_MAP: dict[str, ClawCommandType] = {
-    # Vietnamese
-    "trai": ClawCommandType.MOVE_LEFT,
-    "sang trai": ClawCommandType.MOVE_LEFT,
-    "phai": ClawCommandType.MOVE_RIGHT,
-    "sang phai": ClawCommandType.MOVE_RIGHT,
-    "tien": ClawCommandType.MOVE_FORWARD,
-    "di tien": ClawCommandType.MOVE_FORWARD,
-    "lui": ClawCommandType.MOVE_BACKWARD,
-    "di lui": ClawCommandType.MOVE_BACKWARD,
-    "len": ClawCommandType.MOVE_UP,
-    "di len": ClawCommandType.MOVE_UP,
-    "nang len": ClawCommandType.MOVE_UP,
-    "xuong": ClawCommandType.MOVE_DOWN,
-    "ha xuong": ClawCommandType.MOVE_DOWN,
-    "gap": ClawCommandType.GRAB,
-    "bat nam cham": ClawCommandType.GRAB,
+    # ── Đi thẳng ──
+    "di tien": ClawCommandType.FORWARD,
+    "tien len": ClawCommandType.FORWARD,
+    "chay toi": ClawCommandType.FORWARD,
+    "tien": ClawCommandType.FORWARD,
+    "di lui": ClawCommandType.BACKWARD,
+    "lui lai": ClawCommandType.BACKWARD,
+    "lui": ClawCommandType.BACKWARD,
+
+    # ── Đi ngang (đế omni) ──
+    "sang trai": ClawCommandType.STRAFE_LEFT,
+    "di ngang trai": ClawCommandType.STRAFE_LEFT,
+    "qua trai": ClawCommandType.STRAFE_LEFT,
+    "sang phai": ClawCommandType.STRAFE_RIGHT,
+    "di ngang phai": ClawCommandType.STRAFE_RIGHT,
+    "qua phai": ClawCommandType.STRAFE_RIGHT,
+
+    # ── Xoay tại chỗ ──
+    "xoay trai": ClawCommandType.TURN_LEFT,
+    "quay trai": ClawCommandType.TURN_LEFT,
+    "re trai": ClawCommandType.TURN_LEFT,
+    "xoay phai": ClawCommandType.TURN_RIGHT,
+    "quay phai": ClawCommandType.TURN_RIGHT,
+    "re phai": ClawCommandType.TURN_RIGHT,
+
+    # ── Tay gắp ──
+    "nhat len": ClawCommandType.PICK_UP,
+    "gap len": ClawCommandType.PICK_UP,
+    "dat xuong": ClawCommandType.PUT_DOWN,
+    "tha xuong": ClawCommandType.PUT_DOWN,
+    "gap": ClawCommandType.GRIP,
+    "kep lai": ClawCommandType.GRIP,
+    "tha ra": ClawCommandType.RELEASE,
+    "nha ra": ClawCommandType.RELEASE,
     "tha": ClawCommandType.RELEASE,
-    "tat nam cham": ClawCommandType.RELEASE,
-    "dung": ClawCommandType.EMERGENCY_STOP,
+
+    # ── Cần gạt ──
+    "gat di": ClawCommandType.SWEEP,
+    "gat": ClawCommandType.SWEEP,
+
+    # ── Dừng ──
     "dung lai": ClawCommandType.EMERGENCY_STOP,
-    # English
-    "left": ClawCommandType.MOVE_LEFT,
-    "move left": ClawCommandType.MOVE_LEFT,
-    "right": ClawCommandType.MOVE_RIGHT,
-    "move right": ClawCommandType.MOVE_RIGHT,
-    "forward": ClawCommandType.MOVE_FORWARD,
-    "move forward": ClawCommandType.MOVE_FORWARD,
-    "backward": ClawCommandType.MOVE_BACKWARD,
-    "move backward": ClawCommandType.MOVE_BACKWARD,
-    "up": ClawCommandType.MOVE_UP,
-    "move up": ClawCommandType.MOVE_UP,
-    "down": ClawCommandType.MOVE_DOWN,
-    "move down": ClawCommandType.MOVE_DOWN,
-    "grab": ClawCommandType.GRAB,
-    "pick up": ClawCommandType.GRAB,
+    "dung": ClawCommandType.EMERGENCY_STOP,
+
+    # ── English ──
+    "go forward": ClawCommandType.FORWARD,
+    "forward": ClawCommandType.FORWARD,
+    "go backward": ClawCommandType.BACKWARD,
+    "backward": ClawCommandType.BACKWARD,
+    "strafe left": ClawCommandType.STRAFE_LEFT,
+    "strafe right": ClawCommandType.STRAFE_RIGHT,
+    "turn left": ClawCommandType.TURN_LEFT,
+    "turn right": ClawCommandType.TURN_RIGHT,
+    "pick up": ClawCommandType.PICK_UP,
+    "put down": ClawCommandType.PUT_DOWN,
+    "grip": ClawCommandType.GRIP,
+    "grab": ClawCommandType.GRIP,
     "release": ClawCommandType.RELEASE,
     "drop": ClawCommandType.RELEASE,
+    "sweep": ClawCommandType.SWEEP,
     "stop": ClawCommandType.EMERGENCY_STOP,
 }
 

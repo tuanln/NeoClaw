@@ -45,7 +45,7 @@ class TelemetryPacket:
     timestamp: float = field(default_factory=time.time)
     motor_states: dict[str, bool] = field(default_factory=dict)
     sensor_readings: dict[str, float] = field(default_factory=dict)
-    magnet_active: bool = False
+    gripper_holding: bool = False
     cpu_percent: float = 0.0
     memory_mb: float = 0.0
     temperature_c: float = 0.0
@@ -56,7 +56,7 @@ class TelemetryPacket:
             "timestamp": self.timestamp,
             "motor_states": self.motor_states,
             "sensor_readings": self.sensor_readings,
-            "magnet_active": self.magnet_active,
+            "gripper_holding": self.gripper_holding,
             "cpu_percent": self.cpu_percent,
             "memory_mb": self.memory_mb,
             "temperature_c": self.temperature_c,

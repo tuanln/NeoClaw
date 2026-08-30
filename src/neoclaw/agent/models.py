@@ -1,21 +1,17 @@
-"""Agent data models."""
+"""Agent data models.
+
+The command vocabulary itself lives with the robot it describes
+(`neoclaw.hardware.models`) and is re-exported here so agent-side callers keep
+their import path.
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum, auto
 
+from neoclaw.hardware.models import ClawCommand, ClawCommandType
 
-class ClawCommandType(Enum):
-    MOVE_LEFT = auto()
-    MOVE_RIGHT = auto()
-    MOVE_FORWARD = auto()
-    MOVE_BACKWARD = auto()
-    MOVE_UP = auto()
-    MOVE_DOWN = auto()
-    GRAB = auto()
-    RELEASE = auto()
-    GET_STATE = auto()
-    EMERGENCY_STOP = auto()
+__all__ = ["AgentAction", "AgentMode", "ClawCommand", "ClawCommandType"]
 
 
 class AgentMode(Enum):
@@ -23,21 +19,6 @@ class AgentMode(Enum):
     FREE_PLAY = auto()
     VOICE_CONTROL = auto()
     CHALLENGE = auto()
-
-
-@dataclass
-class ClawCommand:
-    """A parsed claw command from student code or NL input."""
-    command_type: ClawCommandType
-    args: tuple = ()
-    kwargs: dict = field(default_factory=dict)
-
-    def to_dict(self) -> dict:
-        return {
-            "cmd": self.command_type.name,
-            "args": list(self.args),
-            "kwargs": self.kwargs,
-        }
 
 
 @dataclass

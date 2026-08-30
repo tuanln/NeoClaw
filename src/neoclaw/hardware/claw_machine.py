@@ -1,4 +1,13 @@
-"""High-level ClawMachine API."""
+"""LEGACY — arcade claw machine (3-axis gantry + electromagnet).
+
+Not part of the ClawBot product path. Nothing in the app imports this module
+any more: the web API, CLI, AI agent and telemetry all drive
+`neoclaw.hardware.claw_robot.ClawRobot` through `neoclaw.hardware.dispatch`.
+
+Kept only as a reference for the first prototype (see docs/PICOCLAW-ANALYSIS.md).
+Deleting it is a one-line change once the owner confirms it is not needed —
+tracked as open question 4 in docs/PROGRESS.md.
+"""
 from __future__ import annotations
 
 import logging

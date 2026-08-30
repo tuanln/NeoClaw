@@ -14,7 +14,8 @@ from neoclaw.agent.prompt_templates import (
     CLAW_FREE_PLAY_SYSTEM,
     CLAW_TUTOR_SYSTEM,
 )
-from neoclaw.hardware.claw_machine import ClawMachine
+from neoclaw.hardware.claw_robot import ClawRobot
+from neoclaw.hardware.dispatch import apply_command
 
 logger = logging.getLogger(__name__)
 
@@ -31,11 +32,11 @@ class ClawAgent:
 
     def __init__(
         self,
-        claw: ClawMachine,
+        robot: ClawRobot,
         mode: AgentMode = AgentMode.TEACH,
         llm_client: Optional[LLMClient] = None,
     ):
-        self._claw = claw
+        self._robot = robot
         self._mode = mode
         self._llm = llm_client or LLMClient()
         self._nl = NLInterpreter(self._llm)
@@ -64,7 +65,7 @@ class ClawAgent:
             return self._handle_free_play(user_input)
 
     def execute_code(self, code: str) -> ExecutionResult:
-        """Execute student code and apply commands to the claw."""
+        """Execute student code and apply the commands it produced."""
         result = execute_student_code(code)
 
         if result.success:
@@ -73,25 +74,16 @@ class ClawAgent:
         return result
 
     def _apply_commands(self, commands: list[ClawCommand]) -> None:
-        """Apply parsed commands to the real claw machine."""
-        from neoclaw.agent.models import ClawCommandType
+        """Run parsed commands on the robot.
 
-        cmd_map = {
-            ClawCommandType.MOVE_LEFT: self._claw.move_left,
-            ClawCommandType.MOVE_RIGHT: self._claw.move_right,
-            ClawCommandType.MOVE_FORWARD: self._claw.move_forward,
-            ClawCommandType.MOVE_BACKWARD: self._claw.move_backward,
-            ClawCommandType.MOVE_UP: self._claw.move_up,
-            ClawCommandType.MOVE_DOWN: self._claw.move_down,
-            ClawCommandType.GRAB: lambda **kw: self._claw.grab(),
-            ClawCommandType.RELEASE: lambda **kw: self._claw.release(),
-            ClawCommandType.EMERGENCY_STOP: lambda **kw: self._claw.emergency_stop(),
-        }
-
+        No local command table: neoclaw.hardware.dispatch owns the one mapping
+        that the sandbox, the CLI and the web API all share.
+        """
         for cmd in commands:
-            handler = cmd_map.get(cmd.command_type)
-            if handler:
-                handler(**cmd.kwargs)
+            try:
+                apply_command(self._robot, cmd)
+            except KeyError:
+                logger.warning("Unhandled command: %s", cmd.command_type.name)
 
     def _handle_voice(self, text: str) -> AgentAction:
         """Parse NL and execute commands."""
@@ -132,7 +124,7 @@ class ClawAgent:
                 history=self._conversation.get_history()[:-1],
             )
         else:
-            response = "Free play mode. Type commands or code to control the claw."
+            response = "Free play mode. Type commands or code to control the robot."
         self._conversation.add_assistant(response)
         return AgentAction(action_type="explain", content=response)
 
